@@ -6,4 +6,7 @@ pandas
 st-copy-to-clipboard
 PyMuPDF
 python-docx
-anthropic
+anthropic  # Para a versão com Claude
+openai     # Para a versão com OpenAI
+python-dotenv
+httpx      # Adicionado para a solução de proxy da OpenAI
