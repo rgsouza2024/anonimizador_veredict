@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes Virtuais (se você usar um dentro desta pasta no futuro)
+.venv/
+venv/
+ENV/
+env/
+virtualenv/
+Virtualenv/
+virtualenvs/
+Virtualenvs/
+.env
+*.env
+
+# Arquivos de configuração de IDEs/Editores
+.vscode/       # Se você usa VS Code e não quer versionar as configurações da área de trabalho
+.idea/         # Para usuários de PyCharm/IntelliJ
+
+# Arquivos do Streamlit
+.streamlit/secrets.toml  # MUITO IMPORTANTE: Para não enviar suas chaves API secretas!
+
+# Arquivos de Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Outros arquivos que você não quer no repositório
+# Ex: arquivos .log, backups temporários, etc.
+*.log
+*.bak
+*.tmp

@@ -3,6 +3,9 @@
 # Versão com sidebar ajustada e integração LLM (Claude 3.5 Haiku).
 
 import streamlit as st
+import os
+from dotenv import load_dotenv # Importa a função para carregar o .env
+load_dotenv()
 import spacy
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer
 from presidio_analyzer.nlp_engine import SpacyNlpEngine

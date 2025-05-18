@@ -1,0 +1,9 @@
+streamlit
+spacy
+presidio-analyzer
+presidio-anonymizer
+pandas
+st-copy-to-clipboard
+PyMuPDF
+python-docx
+anthropic
