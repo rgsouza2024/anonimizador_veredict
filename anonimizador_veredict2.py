@@ -1,5 +1,5 @@
-# Nome do arquivo: anonimizador_veredict2.py
-# Versão 1.0 (Beta) - OpenAI GPT-4o Mini.
+# Nome do arquivo: anonimizador_veredict.py
+# Versão 1.0 (Beta) - OpenAI GPT-4o Mini, com calculadora de tokens para PDF.
 
 import streamlit as st
 import spacy
@@ -17,7 +17,8 @@ import re
 import os
 from dotenv import load_dotenv
 import openai
-import httpx # Adicionado para cliente HTTP explícito
+import httpx 
+import tiktoken # Adicionado para contagem de tokens
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -35,7 +36,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Chaves para os widgets e session state (usando as que você definiu por último) ---
+# --- Chaves para os widgets e session state (mantendo as do seu último script) ---
 KEY_TEXTO_ORIGINAL_AREA = "texto_original_input_area_v6"
 KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE = "texto_anonimizado_output_area_state_v6"
 KEY_OUTPUT_PDF_ANONIMIZADO_DISPLAY_STATE = "output_pdf_anonimizado_display_state_v6" 
@@ -45,13 +46,17 @@ KEY_BOTAO_APAGAR_AREA = "botao_apagar_area_v6"
 KEY_BOTAO_ANONIMIZAR_AREA = "botao_anonimizar_area_v6"
 KEY_COPY_BTN_FILE = "copy_btn_file_v6"
 KEY_COPY_BTN_AREA = "copy_btn_area_v6"
-KEY_TEXTO_ORIGINAL_PDF_DISPLAY = "texto_original_pdf_exp_v6"
+KEY_TEXTO_ORIGINAL_PDF_DISPLAY = "texto_original_pdf_exp_v6" # Para expander do texto original do PDF
 KEY_LLM_REWRITE_BTN_PDF = "llm_rewrite_pdf_v6"
 KEY_LLM_REWRITE_BTN_AREA = "llm_rewrite_area_v6"
 KEY_LLM_OUTPUT_PDF_STATE = "llm_output_pdf_state_v6"
 KEY_LLM_OUTPUT_AREA_STATE = "llm_output_area_state_v6"
 KEY_COPY_LLM_PDF = "copy_llm_pdf_v6"
 KEY_COPY_LLM_AREA = "copy_llm_area_v6"
+
+# Novas chaves para contagem de tokens do PDF
+KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM = "texto_extraido_pdf_contagem_v6"
+KEY_NUM_TOKENS_PDF_EXTRAIDO = "num_tokens_pdf_extraido_v6"
 
 # --- Funções de Callback e Utilitárias ---
 def callback_apagar_textos_area():
@@ -61,6 +66,8 @@ def callback_apagar_textos_area():
         st.session_state.resultados_df_area = pd.DataFrame()
     if KEY_LLM_OUTPUT_AREA_STATE in st.session_state:
         st.session_state[KEY_LLM_OUTPUT_AREA_STATE] = None
+    
+    # Limpeza de estados relacionados ao PDF também, se o botão for universal
     if 'nome_arquivo_carregado' in st.session_state:
         del st.session_state.nome_arquivo_carregado
     if 'texto_anonimizado_arquivo' in st.session_state: 
@@ -69,6 +76,11 @@ def callback_apagar_textos_area():
         st.session_state[KEY_TEXTO_ORIGINAL_PDF_DISPLAY] = ""
     if KEY_LLM_OUTPUT_PDF_STATE in st.session_state:
         st.session_state[KEY_LLM_OUTPUT_PDF_STATE] = None
+    if KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM in st.session_state: # Limpar texto da contagem
+        st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] = ""
+    if KEY_NUM_TOKENS_PDF_EXTRAIDO in st.session_state: # Limpar contagem de tokens
+        st.session_state[KEY_NUM_TOKENS_PDF_EXTRAIDO] = 0
+
 
 def carregar_lista_de_arquivo(nome_arquivo):
     lista_itens = []
@@ -124,6 +136,7 @@ LISTA_SOBRENOMES_FREQUENTES_BR = carregar_lista_de_arquivo(NOME_ARQUIVO_SOBRENOM
 @st.cache_resource
 def carregar_analyzer_engine(termos_safe_location, termos_legal_header, lista_sobrenomes,
                              termos_estado_civil, termos_organizacoes_conhecidas):
+    # (Corpo da função carregar_analyzer_engine como no seu último script)
     try:
         try: spacy.load('pt_core_news_lg')
         except OSError:
@@ -198,10 +211,11 @@ analyzer_engine = carregar_analyzer_engine(
 anonymizer_engine = carregar_anonymizer_engine()
 operadores = obter_operadores_anonimizacao()
 
-def extrair_texto_de_pdf(arquivo_pdf_bytes):
+def extrair_texto_de_pdf(arquivo_pdf_bytes_io): # Alterado para aceitar BytesIO
     texto_completo = ""
     try:
-        documento_pdf = fitz.open(stream=arquivo_pdf_bytes, filetype="pdf")
+        # fitz.open pode receber um objeto BytesIO diretamente se filetype for especificado
+        documento_pdf = fitz.open(stream=arquivo_pdf_bytes_io, filetype="pdf")
         for pagina in documento_pdf: texto_completo += pagina.get_text()
         documento_pdf.close()
     except Exception as e: st.error(f"Erro ao extrair texto do PDF: {e}"); return None
@@ -212,7 +226,25 @@ def criar_docx_bytes(texto_anonimizado):
     bio = io.BytesIO(); documento.save(bio); bio.seek(0)
     return bio.getvalue()
 
-# --- Função para carregar chave da API OpenAI (ROBUSTA) ---
+# --- Nova Função para Contar Tokens ---
+def contar_tokens(texto: str, modelo: str = "gpt-4o-mini") -> int:
+    """Conta os tokens de um texto para um modelo OpenAI específico."""
+    if not texto:
+        return 0
+    try:
+        encoding = tiktoken.encoding_for_model(modelo)
+    except KeyError:
+        # Fallback para um encoder comum se o modelo específico não for encontrado
+        # 'cl100k_base' é usado por gpt-4, gpt-3.5-turbo, text-embedding-ada-002, e gpt-4o-mini
+        try:
+            encoding = tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            # Fallback muito grosseiro se tiktoken falhar completamente
+            return len(texto.split()) 
+    
+    num_tokens = len(encoding.encode(texto))
+    return num_tokens
+
 def carregar_chave_openai():
     api_key = os.getenv("OPENAI_API_KEY") 
     if not api_key: 
@@ -226,22 +258,13 @@ def carregar_chave_openai():
         return None
     return api_key
 
-# --- Função para chamar a LLM OpenAI GPT-4.1 Nano ---
 def reescrever_texto_com_openai(texto_anonimizado: str, prompt_instrucao_usuario: str, system_prompt: str, api_key: str) -> str | None:
     if not texto_anonimizado or not texto_anonimizado.strip():
         st.warning("Não há texto anonimizado para reescrever.")
         return None
     try:
-        # Criar um cliente httpx padrão para passar explicitamente
-        # Isso ajuda a evitar problemas com configurações de proxy do ambiente
-        # sendo mal interpretadas pela biblioteca OpenAI.
         meu_http_client = httpx.Client()
-            
-        client = openai.OpenAI(
-            api_key=api_key,
-            http_client=meu_http_client # Passando o cliente httpx explicitamente
-        )
-        
+        client = openai.OpenAI(api_key=api_key, http_client=meu_http_client)
         response = client.chat.completions.create(
             model="gpt-4o-mini", 
             messages=[
@@ -249,7 +272,7 @@ def reescrever_texto_com_openai(texto_anonimizado: str, prompt_instrucao_usuario
                 {"role": "user", "content": f"{prompt_instrucao_usuario}\n\nTexto anonimizado para reescrever:\n\n---\n{texto_anonimizado}\n---"}
             ],
             temperature=0.3, 
-            max_tokens=16000,
+            max_tokens=16000, # Ajustado conforme discussão anterior
             top_p=1.0,
             frequency_penalty=0.0,
             presence_penalty=0.0
@@ -270,17 +293,20 @@ def reescrever_texto_com_openai(texto_anonimizado: str, prompt_instrucao_usuario
 
 # --- Interface Streamlit Principal ---
 path_da_logo = "logo_veredict.png"
-try: st.image(path_da_logo, width=420) # Conforme seu último ajuste
+try: st.image(path_da_logo, width=420) 
 except: st.warning("Logo não pôde ser carregada.")
 st.markdown("<h1 style='text-align: center; margin-bottom: 20px;'>Anonimizador Veredict</h1>", unsafe_allow_html=True)
 
 tab_pdf, tab_texto = st.tabs(["🗂️ Anonimizar Arquivo PDF", "⌨️ Anonimizar Texto Colado"])
 
+# Inicialização de estados da LLM e outros
 st.session_state.setdefault(KEY_LLM_OUTPUT_PDF_STATE, None)
 st.session_state.setdefault(KEY_LLM_OUTPUT_AREA_STATE, None)
 st.session_state.setdefault('texto_anonimizado_arquivo', None)
 st.session_state.setdefault(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE, "O resultado da anonimização aparecerá aqui...")
 st.session_state.setdefault(KEY_TEXTO_ORIGINAL_PDF_DISPLAY, "")
+st.session_state.setdefault(KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM, "") # NOVO
+st.session_state.setdefault(KEY_NUM_TOKENS_PDF_EXTRAIDO, 0)    # NOVO
 st.session_state.setdefault('nome_arquivo_carregado', None)
 st.session_state.setdefault('resultados_df_area', pd.DataFrame())
 st.session_state.setdefault(KEY_TEXTO_ORIGINAL_AREA, ("EXMO. SR. DR. JUIZ FEDERAL DA ____ª VARA DA SEÇÃO JUDICIÁRIA DE SÃO LUÍS – MA – JUIZADO ESPECIAL FEDERAL.\n"
@@ -290,33 +316,70 @@ st.session_state.setdefault(KEY_TEXTO_ORIGINAL_AREA, ("EXMO. SR. DR. JUIZ FEDERA
 
 with tab_pdf:
     st.header("Processar Arquivo PDF")
-    arquivo_pdf_carregado = st.file_uploader("Escolha um arquivo PDF:", type=["pdf"], key=KEY_PDF_UPLOADER, help="Faça o upload de um arquivo PDF para extrair o texto e anonimizá-lo.")
+    arquivo_pdf_carregado = st.file_uploader("Escolha um arquivo PDF:", type=["pdf"], key=KEY_PDF_UPLOADER, 
+                                             help="Faça o upload de um arquivo PDF para extrair o texto e anonimizá-lo.")
 
     if arquivo_pdf_carregado is not None:
+        # Verifica se o arquivo mudou para reprocessar a contagem de tokens
         if st.session_state.nome_arquivo_carregado != arquivo_pdf_carregado.name:
             st.session_state.nome_arquivo_carregado = arquivo_pdf_carregado.name
             st.session_state.texto_anonimizado_arquivo = None 
             st.session_state[KEY_TEXTO_ORIGINAL_PDF_DISPLAY] = "" 
             st.session_state[KEY_LLM_OUTPUT_PDF_STATE] = None
+            
+            # Extrai texto e conta tokens assim que o arquivo é carregado/mudado
+            with st.spinner(f"Lendo o arquivo '{arquivo_pdf_carregado.name}' para calcular tokens..."):
+                # É importante ler os bytes uma vez e reutilizar ou usar BytesIO se a função de extração consome o stream
+                bytes_do_pdf = arquivo_pdf_carregado.getvalue()
+                st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] = extrair_texto_de_pdf(io.BytesIO(bytes_do_pdf)) # Passa como BytesIO
 
+                if st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] and st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM].strip():
+                    st.session_state[KEY_NUM_TOKENS_PDF_EXTRAIDO] = contar_tokens(st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM])
+                else:
+                    st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] = ""
+                    st.session_state[KEY_NUM_TOKENS_PDF_EXTRAIDO] = 0
+                    if st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] is not None:
+                        st.warning("O PDF carregado parece não conter texto útil para contagem de tokens.")
+            
+            arquivo_pdf_carregado.seek(0) # Reseta o ponteiro do arquivo para releitura futura
+
+        # Exibe a contagem de tokens se disponível
+        if st.session_state.get(KEY_NUM_TOKENS_PDF_EXTRAIDO, 0) > 0:
+            st.info(f"Texto extraído do PDF ('{st.session_state.nome_arquivo_carregado}'): Aproximadamente **{st.session_state[KEY_NUM_TOKENS_PDF_EXTRAIDO]} tokens** (OpenAI).")
+
+        # Botão para anonimizar
         if st.button("🔍 Anonimizar PDF Carregado", key=KEY_BOTAO_ANONIMIZAR_PDF, type="primary", disabled=(not analyzer_engine or not anonymizer_engine)):
             if analyzer_engine and anonymizer_engine:
-                with st.spinner(f"Processando '{arquivo_pdf_carregado.name}'..."):
-                    bytes_pdf = arquivo_pdf_carregado.getvalue()
-                    texto_extraido = extrair_texto_de_pdf(bytes_pdf)
-                    st.session_state[KEY_TEXTO_ORIGINAL_PDF_DISPLAY] = texto_extraido if texto_extraido else ""
-                    st.session_state[KEY_LLM_OUTPUT_PDF_STATE] = None
-                    if texto_extraido and texto_extraido.strip():
+                # Usa o texto que já foi extraído para a contagem de tokens, se disponível e válido
+                texto_para_anonimizar = st.session_state.get(KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM)
+                
+                if not texto_para_anonimizar or not texto_para_anonimizar.strip():
+                    # Se não conseguiu extrair antes ou está vazio, tenta de novo (pode ser redundante se bem gerenciado acima)
+                    st.warning("Texto do PDF não disponível ou vazio. Tentando extrair novamente...")
+                    bytes_pdf = arquivo_pdf_carregado.getvalue() # Precisa do objeto arquivo_pdf_carregado
+                    arquivo_pdf_carregado.seek(0) # Resetar ponteiro
+                    texto_para_anonimizar = extrair_texto_de_pdf(io.BytesIO(bytes_pdf))
+                    st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] = texto_para_anonimizar if texto_para_anonimizar else ""
+                
+                st.session_state[KEY_TEXTO_ORIGINAL_PDF_DISPLAY] = st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] # Atualiza para o expander
+                st.session_state[KEY_LLM_OUTPUT_PDF_STATE] = None # Limpa reescrita anterior
+
+                if texto_para_anonimizar and texto_para_anonimizar.strip():
+                    with st.spinner(f"Anonimizando '{st.session_state.nome_arquivo_carregado}'..."):
                         entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA"]
                         entidades_para_analise = list(set(entidades_para_analise)); 
                         if "DEFAULT" in entidades_para_analise: entidades_para_analise.remove("DEFAULT")
-                        resultados_analise_pdf = analyzer_engine.analyze(text=texto_extraido, language='pt', entities=entidades_para_analise, return_decision_process=False)
-                        resultado_anonimizado_pdf_obj = anonymizer_engine.anonymize(text=texto_extraido, analyzer_results=resultados_analise_pdf, operators=operadores)
+                        resultados_analise_pdf = analyzer_engine.analyze(text=texto_para_anonimizar, language='pt', entities=entidades_para_analise, return_decision_process=False)
+                        resultado_anonimizado_pdf_obj = anonymizer_engine.anonymize(text=texto_para_anonimizar, analyzer_results=resultados_analise_pdf, operators=operadores)
                         st.session_state.texto_anonimizado_arquivo = resultado_anonimizado_pdf_obj.text
-                        st.success(f"Arquivo '{arquivo_pdf_carregado.name}' anonimizado com sucesso!")
-                    elif texto_extraido is not None: st.warning("O PDF carregado parece não conter texto útil.")
-                    else: st.session_state.texto_anonimizado_arquivo = None 
-            else: st.error("Motores de anonimização não estão prontos.")
+                        st.success(f"Arquivo '{st.session_state.nome_arquivo_carregado}' anonimizado com sucesso!")
+                elif texto_para_anonimizar is not None: 
+                    st.warning("O PDF carregado parece não conter texto útil para anonimização.")
+                    st.session_state.texto_anonimizado_arquivo = None
+                else: 
+                    st.session_state.texto_anonimizado_arquivo = None 
+            else: 
+                st.error("Motores de anonimização não estão prontos.")
         
         if st.session_state.get(KEY_TEXTO_ORIGINAL_PDF_DISPLAY, "").strip():
             with st.expander("📄 Ver Texto Extraído do PDF (Original)", expanded=False):
@@ -337,11 +400,11 @@ with tab_pdf:
             st_copy_to_clipboard(texto_anonimizado_pdf_atual, "📋 Copiar Texto Gerado", key=KEY_COPY_BTN_FILE)
 
         st.divider()
-        st.subheader("Melhorar Fluidez do Texto Anonimizado com IA")
+        st.subheader("Melhorar Fluidez do Texto Anonimizado com IA (GPT-4o Mini)")
         if st.button("✨ Gerar Texto Reescrito pela IA", key=KEY_LLM_REWRITE_BTN_PDF, type="primary"):
             openai_api_key = carregar_chave_openai()
             if openai_api_key and texto_anonimizado_pdf_atual:
-                with st.spinner("Trabalhando na reescrita... Por favor, aguarde."):
+                with st.spinner("IA (GPT-4o Mini) está trabalhando na reescrita... Por favor, aguarde."):
                     texto_reescrito = reescrever_texto_com_openai(texto_anonimizado_pdf_atual, PROMPT_INSTRUCAO_LLM_OPENAI, SYSTEM_PROMPT_OPENAI, openai_api_key)
                     st.session_state[KEY_LLM_OUTPUT_PDF_STATE] = texto_reescrito
             elif not openai_api_key: pass 
@@ -368,13 +431,13 @@ with tab_texto:
         st.text_area("Resultado da anonimização:", value=st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE, "O resultado da anonimização aparecerá aqui..."), 
                      height=300, disabled=True)
         if st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE) and \
-           st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE) not in ["O resultado da anonimização aparecerá aqui...", "O resultado da área de texto aparecerá aqui...", "Erro ao processar o texto da área."]: # Adicionado o placeholder da callback
+           st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE) not in ["O resultado da anonimização aparecerá aqui...", "O resultado da área de texto aparecerá aqui...", "Erro ao processar o texto da área."]:
             st_copy_to_clipboard(st.session_state[KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE], "📋 Copiar Texto Anonimizado", key=KEY_COPY_BTN_AREA)
         else: st.markdown("<div style='height: 38px;'></div>", unsafe_allow_html=True)
     
     st.divider()
 
-    if st.button("✨ Anonimizar Texto da Área", type="primary", key=KEY_BOTAO_ANONIMIZAR_AREA, # use_container_width removido
+    if st.button("✨ Anonimizar Texto da Área", type="primary", key=KEY_BOTAO_ANONIMIZAR_AREA, 
                   disabled=(not analyzer_engine or not anonymizer_engine)):
         texto_para_processar = st.session_state[KEY_TEXTO_ORIGINAL_AREA]
         st.session_state[KEY_LLM_OUTPUT_AREA_STATE] = None
@@ -411,11 +474,11 @@ with tab_texto:
     texto_anonimizado_area_atual = st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE)
     if texto_anonimizado_area_atual and texto_anonimizado_area_atual not in ["O resultado da anonimização aparecerá aqui...", "O resultado da área de texto aparecerá aqui...", "Erro ao processar o texto da área."]:
         st.divider()
-        st.subheader("Melhorar Fluidez do Texto Anonimizado com IA")
+        st.subheader("Melhorar Fluidez do Texto Anonimizado com IA (GPT-4o Mini)")
         if st.button("✨ Gerar Texto Reescrito pela IA", key=KEY_LLM_REWRITE_BTN_AREA, type="primary"):
             openai_api_key = carregar_chave_openai()
             if openai_api_key and texto_anonimizado_area_atual:
-                with st.spinner("Trabalhando na reescrita... Por favor, aguarde."):
+                with st.spinner("IA (GPT-4o Mini) está trabalhando na reescrita... Por favor, aguarde."):
                     texto_reescrito = reescrever_texto_com_openai(texto_anonimizado_area_atual, PROMPT_INSTRUCAO_LLM_OPENAI, SYSTEM_PROMPT_OPENAI, openai_api_key)
                     st.session_state[KEY_LLM_OUTPUT_AREA_STATE] = texto_reescrito
             elif not openai_api_key: pass
@@ -432,7 +495,7 @@ st.sidebar.header("Sobre")
 sidebar_text_sobre = """
 **Anonimizador Veredict**
 
-Versão 1.0 (Beta) 
+Versão 1.0 (Beta) - OpenAI GPT-4o Mini
 
 Desenvolvido por:
 
@@ -451,5 +514,6 @@ st.sidebar.markdown(
     " clique no botão '✨ Gerar Texto Reescrito pela IA'.\n\n"
     "**Importante:**\n"
     "- Trata-se de ferramenta em desenvolvimento.\n"
+    "- A funcionalidade de reescrita com IA requer uma chave API da OpenAI (`OPENAI_API_KEY`) configurada.\n"
     "- Sempre confira o resultado gerado (a IA pode cometer erros)."
 )
