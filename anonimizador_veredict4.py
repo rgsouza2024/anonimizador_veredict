@@ -1,4 +1,4 @@
-# Nome do arquivo: anonimizador_veredict3.py
+# Nome do arquivo: anonimizador_veredict4.py
 # Versão 1.0 (Beta) - Google Gemini, com logo centralizado no topo e sem título em texto.
 
 import streamlit as st

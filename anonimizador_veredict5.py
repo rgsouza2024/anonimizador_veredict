@@ -1,5 +1,5 @@
 # Nome do arquivo: anonimizador_veredict.py
-# Versão 1.1 (Beta)
+# Versão 1.1 (Beta) - Suporte a Múltiplas LLMs e UI Refinada.
 
 import streamlit as st
 import spacy
@@ -34,9 +34,9 @@ PROMPT_INSTRUCAO_LLM_BASE = """Você receberá um texto que foi previamente anon
 """
 
 # Modelos LLM IDs
-MODELO_GEMINI = "gemini-2.0-flash-lite"
+MODELO_GEMINI = "gemini-1.5-flash-latest"
 MODELO_OPENAI = "gpt-4o-mini"
-MODELO_CLAUDE = "claude-3-5-haiku-latest"
+MODELO_CLAUDE = "claude-3-haiku-20240307"
 MODELO_OLLAMA_GEMMA = "gemma3:4b" # Conforme sua especificação
 OLLAMA_BASE_URL = "http://localhost:11434"
 
@@ -432,7 +432,7 @@ def reescrever_texto_com_ollama(texto_anonimizado: str, system_prompt: str, user
 
 # --- Dicionário de Configurações das LLMs ---
 LLM_CONFIGS = {
-    "Google Gemini 2.0 Flash": {
+    "Google Gemini 1.5 Flash": {
         "id": "gemini", "model_api_name": MODELO_GEMINI, 
         "key_loader_function": lambda: carregar_chave_api("GOOGLE_API_KEY", "GOOGLE_API_KEY", "Google Gemini"),
         "rewrite_function": reescrever_texto_com_gemini,
@@ -444,13 +444,13 @@ LLM_CONFIGS = {
         "rewrite_function": reescrever_texto_com_openai,
         "token_estimator_model": MODELO_OPENAI
     },
-    "Anthropic Claude 3.5 Haiku": {
+    "Anthropic Claude 3 Haiku": {
         "id": "claude", "model_api_name": MODELO_CLAUDE,
         "key_loader_function": lambda: carregar_chave_api("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY", "Anthropic Claude"),
         "rewrite_function": reescrever_texto_com_claude,
         "token_estimator_model": "claude" # Flag para contar_tokens_para_estimativa
     },
-    f"LLM Local ({MODELO_OLLAMA_GEMMA})": {
+    f"Ollama Local ({MODELO_OLLAMA_GEMMA})": {
         "id": "ollama", "model_api_name": MODELO_OLLAMA_GEMMA,
         "key_loader_function": lambda: True, 
         "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_GEMMA),
@@ -462,7 +462,7 @@ st.markdown("<style>div.block-container{padding-top:1rem !important;}</style>", 
 cols_logo = st.columns([2, 3, 2]) 
 with cols_logo[1]: 
     try:
-        st.image(PATH_DA_LOGO, width=500) 
+        st.image(PATH_DA_LOGO, width=300) 
     except FileNotFoundError:
         st.error(f"Logo '{PATH_DA_LOGO}' não encontrada.")
     except Exception as e:
@@ -586,10 +586,10 @@ with tab_pdf:
         if st.session_state.get(KEY_NUM_TOKENS_PDF_EXTRAIDO, 0) > 0:
             llm_selecionada_display = st.session_state.get(f"{KEY_LLM_CHOICE_PDF}_pdf", list(LLM_CONFIGS.keys())[0]).split('(')[0].strip()
             token_provider_display = "Estimativa Genérica"
-            if "OpenAI" in llm_selecionada_display: token_provider_display = "OpenAI"
-            elif "Claude" in llm_selecionada_display: token_provider_display = "Anthropic"
-            elif "Gemini" in llm_selecionada_display: token_provider_display = "Google"
-            elif "Ollama" in llm_selecionada_display: token_provider_display = "Ollama"
+            if "OpenAI" in llm_selecionada_display: token_provider_display = "OpenAI (Tiktoken)"
+            elif "Claude" in llm_selecionada_display: token_provider_display = "Anthropic (Tiktoken est.)"
+            elif "Gemini" in llm_selecionada_display: token_provider_display = "Google (Tiktoken est.)"
+            elif "Ollama" in llm_selecionada_display: token_provider_display = "Ollama (Cont. Palavras)"
 
 
             col_info1, col_info2 = st.columns(2)
@@ -759,7 +759,7 @@ st.sidebar.header("Sobre")
 sidebar_text_sobre = """
 **Anonimizador Veredict**
 
-Versão 1.1 (Beta) 
+Versão 1.1 (Beta - Multi-LLM) 
 
 Desenvolvido por:
 
@@ -773,10 +773,12 @@ st.sidebar.markdown(
     "1. **Anonimize seu texto** (Camada 1):\n"
     "   - Na aba '🗂️ Anonimizar Arquivo PDF', carregue um PDF e clique em 'Anonimizar PDF Carregado'. Uma estimativa de tokens será exibida.\n"
     "   - Na aba '⌨️ Anonimizar Texto Colado', insira o texto e clique em 'Anonimizar Texto da Área'.\n\n"
-    "2. **Gere um Resumo Jurídico com IA** (Camada 2 - Opcional):\n"
+    "2. **Gere um Resumo Jurídico com IA (Camada 2 - Opcional):**\n"
     "   - Após a anonimização, escolha o modelo de IA desejado na lista suspensa.\n"
     "   - Clique no botão '✨ Gerar Resumo com [Nome da LLM]'.\n\n"
     "**Importante:**\n"
     "- Trata-se de ferramenta em desenvolvimento.\n"
-    "- Sempre confira o resultado gerado (a IA pode cometer erro)."
+    "- API Keys para Gemini, OpenAI, Claude devem estar no arquivo `.env`.\n"
+    "- Para Ollama, o servidor deve estar rodando localmente com o modelo (ex: `gemma3:4b`) disponível.\n"
+    "- Sempre confira o resultado gerado."
 )
