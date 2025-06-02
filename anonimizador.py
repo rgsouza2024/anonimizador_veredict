@@ -1,5 +1,5 @@
 # Nome do arquivo: anonimizador.py
-# Versão 0.96 (Beta)
+# Versão 0.99 (Beta)
 
 import streamlit as st
 import spacy
@@ -30,10 +30,9 @@ load_dotenv()
 # --- Constantes ---
 NOME_ARQUIVO_SOBRENOMES = "sobrenomes_comuns.txt"
 NOME_ARQUIVO_TERMOS_COMUNS = "termos_comuns.txt"
+NOME_ARQUIVO_PROMPT_INSTRUCAO = "prompt_instrucao_llm_base.txt" 
 PATH_DA_LOGO = "Logo - AnonimizaJud.png" 
-SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown."
-PROMPT_INSTRUCAO_LLM_BASE = """Você receberá um texto que foi previamente anonimizado. Limite-se ao conteúdo do texto recebido. Substituindo as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown, faça um resumo detalhado do texto fornecido. Destaque minuciosamente os fatos, os argumentos jurídicos e os pedidos. Omita informações pessoais ou sensíveis por expressões genéricas. NUNCA use tags de anonimização. Não utilize markdowns nem formatação de texto. Traga no output apenas o texto reescrito. Nunca apresente frases introdutórias do tipo 'Aqui está a versão reescrita do texto...' ou frases de encerramento do tipo 'A reescrita mantém a estrutura formal do documento...'."
-"""
+SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown. think=false . /setnothink /no_think "
 
 # Modelos LLM IDs
 MODELO_GEMINI = "gemini-2.0-flash-lite"
@@ -43,13 +42,14 @@ MODELO_GROQ_LLAMA3_70B = "llama-3.3-70b-versatile"
 MODELO_OLLAMA_GEMMA = "gemma3:12b" 
 MODELO_OLLAMA_DEEPSEEK = "deepseek-r1"
 MODELO_OLLAMA_NEMOTRON = "nemotron-mini"
+MODELO_OLLAMA_QWEN = "qwen3:8b"
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 # --- Configuração da Página ---
 st.set_page_config(
     page_title="Anonimizador",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # --- Chaves para os widgets e session state ---
@@ -117,6 +117,39 @@ def carregar_lista_de_arquivo(nome_arquivo):
     except Exception as e: st.error(f"Erro ao ler o arquivo '{nome_arquivo}': {e}")
     return lista_itens
 
+def carregar_texto_de_arquivo(nome_arquivo: str) -> str | None:
+    """
+    Lê todo o conteúdo de um arquivo de texto e o retorna como uma única string.
+    Retorna None se o arquivo não for encontrado ou ocorrer um erro.
+    """
+    caminho_base = os.path.dirname(os.path.abspath(__file__))
+    caminho_arquivo = os.path.join(caminho_base, nome_arquivo)
+    try:
+        with open(caminho_arquivo, "r", encoding="utf-8") as f:
+            conteudo = f.read().strip() 
+        if not conteudo:
+            st.warning(f"O arquivo de prompt '{nome_arquivo}' foi encontrado em '{caminho_arquivo}', mas está vazio.")
+            return None 
+        return conteudo
+    except FileNotFoundError:
+        st.error(f"Arquivo de prompt '{nome_arquivo}' NÃO encontrado em '{caminho_arquivo}'. "
+                 f"Verifique se o arquivo existe na mesma pasta do script Python.")
+        return None 
+    except Exception as e:
+        st.error(f"Erro ao ler o arquivo de prompt '{nome_arquivo}': {e}")
+        return None
+
+# Carregando o PROMPT_INSTRUCAO_LLM_BASE do arquivo .txt
+PROMPT_INSTRUCAO_LLM_BASE = carregar_texto_de_arquivo(NOME_ARQUIVO_PROMPT_INSTRUCAO)
+
+# Verificação e fallback (opcional, mas recomendado, para o caso do arquivo não ser encontrado ou estar vazio)
+if PROMPT_INSTRUCAO_LLM_BASE is None or not PROMPT_INSTRUCAO_LLM_BASE.strip():
+    st.error(f"ATENÇÃO: Não foi possível carregar o prompt de instrução do arquivo '{NOME_ARQUIVO_PROMPT_INSTRUCAO}'. "
+             "Verifique se o arquivo existe na mesma pasta do script e não está vazio. "
+             "Usando um prompt de instrução padrão genérico.")
+    # Defina um prompt padrão aqui se o carregamento falhar
+    PROMPT_INSTRUCAO_LLM_BASE = """Instrução padrão de fallback: Faça um resumo detalhado do texto fornecido, omitindo informações pessoais ou sensíveis, e substituindo tags por expressões genéricas."""
+
 # --- Listas Estáticas (Completas) ---
 LISTA_ESTADOS_CAPITAIS_BR = [
     "Acre", "AC",
@@ -179,7 +212,9 @@ TERMOS_CABECALHO_LEGAL_NAO_ANONIMIZAR = [
     "EXMO. SR. DR. JUIZ DE DIREITO", "EXMO SR DR JUIZ DE DIREITO",
     "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO", "JUIZ DE DIREITO",
     "JUIZADO ESPECIAL FEDERAL", "VARA DA SEÇÃO JUDICIÁRIA", "SEÇÃO JUDICIÁRIA", "EXMO.",
-    "EXMO", "SR.", "DR.", "Dra.", "DRA.", "EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) FEDERAL"
+    "EXMO", "SR.", "DR.", "Dra.", "DRA.", "EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) FEDERAL",
+    "EXCELENTÍSSIMO", "Senhor", "Doutor", "Senhora", "Doutora", "EXCELENTÍSSIMA", "EXCELENTÍSSIMO(A)",
+    "Senhor(a)", "Doutor(a)", "Juiz", "Juíza", "Juiz(a)", "Juiz(íza)", "Assunto", "Assuntos"
 ]
 LISTA_ESTADO_CIVIL = [
     "casado", "casada", "solteiro", "solteira", "viúvo", "viúva", 
@@ -189,14 +224,14 @@ LISTA_ESTADO_CIVIL = [
 ]
 LISTA_ORGANIZACOES_CONHECIDAS = [
     "SIAPE", "FUNASA", "INSS", "IBAMA", "CNPQ", "IBGE", "FIOCRUZ",
-    "SERPRO", "DATAPREV", "VALOR", "Justiça", "Justica", "Segredo",
+    "SERPRO", "DATAPREV", "VALOR", "Justiça", "Justica", "Segredo", "PJe"
     "Assunto", "Tribunal Regional Federal", "Assuntos", "Vara Federal",
     "Vara", "Justiça Federal", "Federal", "Juizado", "Especial", "Federal",
-    "Vara Federal de Juizado Especial Cível", "Turma", "Turma Recursal",
+    "Vara Federal de Juizado Especial Cível", "Turma", "Turma Recursal", "PJE"
     "SJGO", "SJDF", "SJMA", "SJAC", "SJAL", "SJAP", "SJAM", "SJBA", "SJCE", 
     "SJDF", "SJES", "SJGO", "SJMA", "SJMG", "SJMS", "SJMT", "SJPA", "SJPB", 
     "SJPE", "SJPI", "SJPR", "SJPE", "SJRN", "SJRO", "SJRR", "SJRS", "SJSC",
-    "SJSE", "SJSP", "SJTO" 
+    "SJSE", "SJSP", "SJTO", "Justiça Federal da 1ª Região", "PJe - Processo Judicial Eletrônico" 
 ]
 LISTA_SOBRENOMES_FREQUENTES_BR = carregar_lista_de_arquivo(NOME_ARQUIVO_SOBRENOMES)
 LISTA_TERMOS_COMUNS = carregar_lista_de_arquivo(NOME_ARQUIVO_TERMOS_COMUNS)
@@ -592,11 +627,12 @@ def reescrever_texto_com_ollama(texto_anonimizado: str, system_prompt: str, user
         "stream": False,
         "options": {
             "temperature": 0.3, 
-            "num_predict": 32768 # Limite de tokens de saída para Ollama, ajuste se necessário
+            "num_predict": 32768, # Limite de tokens de saída para Ollama, ajuste se necessário
+            "think":False
         }
     }
     try:
-        response = requests.post(f"{OLLAMA_BASE_URL}/api/generate", json=payload, timeout=180) # Timeout aumentado
+        response = requests.post(f"{OLLAMA_BASE_URL}/api/generate", json=payload, timeout=360) # Timeout aumentado
         response.raise_for_status() # Levanta erro para status HTTP ruins (4xx ou 5xx)
         response_data = response.json()
         
@@ -625,7 +661,7 @@ LLM_CONFIGS = {
         "id": "gemini", "model_api_name": MODELO_GEMINI, 
         "key_loader_function": lambda: carregar_chave_api("GOOGLE_API_KEY", "GOOGLE_API_KEY", "Google Gemini"),
         "rewrite_function": reescrever_texto_com_gemini,
-        "token_estimator_model": "gemini_estimate" # Flag para contar_tokens_para_estimativa
+        "token_estimator_model": "gemini_estimate"
     },
     "OpenAI GPT-4.1 nano": {
         "id": "openai", "model_api_name": MODELO_OPENAI,
@@ -637,51 +673,72 @@ LLM_CONFIGS = {
         "id": "claude", "model_api_name": MODELO_CLAUDE,
         "key_loader_function": lambda: carregar_chave_api("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY", "Anthropic Claude"),
         "rewrite_function": reescrever_texto_com_claude,
-        "token_estimator_model": "claude" # Flag para contar_tokens_para_estimativa
+        "token_estimator_model": "claude"
     },
     "Groq Llama3.3 70B Versatile": { 
         "id": "groq_llama3_3_70b", 
-        "model_api_name": MODELO_GROQ_LLAMA3_70B, # Usará "llama-3.3-70b-versatile"
+        "model_api_name": MODELO_GROQ_LLAMA3_70B,
         "key_loader_function": lambda: carregar_chave_api("GROQ_API_KEY", "GROQ_API_KEY", "Groq"),
         "rewrite_function": reescrever_texto_com_groq,
         "token_estimator_model": "openai" 
     },    
-    f"LLM Local GEMMA ({MODELO_OLLAMA_GEMMA})": {
-        "id": "ollama", "model_api_name": MODELO_OLLAMA_GEMMA,
+    f"Ollama Local GEMMA ({MODELO_OLLAMA_GEMMA})": {
+        "id": "ollama_gemma", # ID interno ajustado para ser único
+        "model_api_name": MODELO_OLLAMA_GEMMA,
         "key_loader_function": lambda: True, 
         "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_GEMMA),
         "token_estimator_model": "ollama"
     },        
-    f"LLM Local DEEPSEEK ({MODELO_OLLAMA_DEEPSEEK})": { # <<< NOVA ENTRADA PARA DEEPSEEK
-       "id": "ollama_deepseek", # ID interno diferente
-       "model_api_name": MODELO_OLLAMA_DEEPSEEK, 
-       "key_loader_function": lambda: True, 
-       "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_DEEPSEEK),
-       "token_estimator_model": "ollama" 
+    f"Ollama Local DEEPSEEK ({MODELO_OLLAMA_DEEPSEEK})": { 
+        "id": "ollama_deepseek", 
+        "model_api_name": MODELO_OLLAMA_DEEPSEEK, 
+        "key_loader_function": lambda: True, 
+        "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_DEEPSEEK), 
+        "think": False,
+        "token_estimator_model": "ollama" 
     },
-    f"LLM Local NVIDIA NEMOTRON ({MODELO_OLLAMA_NEMOTRON})": {
-        "id": "ollama_nemotron", # ID interno único
+    f"Ollama Local NVIDIA NEMOTRON ({MODELO_OLLAMA_NEMOTRON})": {
+        "id": "ollama_nemotron", 
         "model_api_name": MODELO_OLLAMA_NEMOTRON, 
         "key_loader_function": lambda: True, 
         "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_NEMOTRON),
         "token_estimator_model": "ollama" 
+    },
+    f"Ollama Local QWEN ({MODELO_OLLAMA_QWEN})": { # <<< NOVA ENTRADA PARA QWEN
+        "id": "ollama_qwen", # ID interno único
+        "model_api_name": MODELO_OLLAMA_QWEN, 
+        "key_loader_function": lambda: True, 
+        "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_QWEN),
+        "token_estimator_model": "ollama" 
     }
 }
 # --- Interface Streamlit Principal ---
-st.markdown("<style>div.block-container{padding-top:1rem !important;}</style>", unsafe_allow_html=True)
-cols_logo = st.columns([2, 3, 2]) 
-with cols_logo[1]: 
+# Ajuste para diminuir o padding no topo se quiser o logo bem no alto
+st.markdown("<style>div.block-container{padding-top:3rem !important;}</style>", unsafe_allow_html=True)
+
+# Cria duas colunas: 20% para a logo, 80% para o conteúdo principal
+col_logo, col_principal = st.columns([0.1, 0.9]) 
+
+with col_logo: # Coluna da esquerda para a logo
     try:
-        st.image(PATH_DA_LOGO, width=600) 
+        # Ajuste o width para que a logo se encaixe bem nos 20% da coluna,
+        # ou use use_column_width=True para que ela tente preencher a coluna.
+        # Se o logo for muito largo, 'auto' ou 'always' podem distorcê-lo se não tiver proporção correta.
+        # Um width fixo pode ser melhor aqui.
+        st.image(PATH_DA_LOGO, width=200) # Experimente com 150px, 200px, etc.
     except FileNotFoundError:
         st.error(f"Logo '{PATH_DA_LOGO}' não encontrada.")
     except Exception as e:
         st.warning(f"Logo não pôde ser carregada: {e}")
-st.divider()
-st.markdown("<h3 style='text-align: center;'>Bem-vindo ao Anonimizador!</h3>", unsafe_allow_html=True)
-st.caption("Proteja informações sensíveis em seus documentos, com a opção de gerar um resumo jurídico inteligente do conteúdo anonimizado. Escolha uma das opções abaixo para começar.")
-st.markdown("---")
 
+with col_principal: # Coluna da direita para o restante do cabeçalho e conteúdo
+    # Se você quiser um título aqui, ele ficará ao lado da logo
+    st.markdown("<h3 style='text-align: left; margin-top: 0px; margin-bottom: 10px;'>Anonimizador</h3>", unsafe_allow_html=True)
+    st.caption("Proteja informações sensíveis em seus documentos, com a opção de gerar um resumo jurídico inteligente do conteúdo anonimizado.")
+    
+st.markdown("---") # Divisor abaixo da linha da logo/título
+
+# O restante do seu código (abas, etc.) viria aqui, fora das colunas do cabeçalho
 tab_pdf, tab_texto = st.tabs(["🗂️ Anonimizar Arquivo PDF", "⌨️ Anonimizar Texto Colado"])
 
 # Inicialização de estados para garantir que todas as chaves existem
@@ -975,9 +1032,9 @@ with tab_texto:
 # --- Informações na Sidebar ---
 st.sidebar.header("Sobre")
 sidebar_text_sobre = """
-**Anonimizador**
+**AnonimizaJUD**
 
-Versão 0.96 (Beta) 
+Versão 0.99 (Beta) 
 
 Desenvolvido por:
 

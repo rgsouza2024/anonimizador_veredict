@@ -2489,3 +2489,364 @@ Turmas Recursais
 Turmas
 Ed.
 Edifício
+Justiça Federal da 1ª Região
+PJe - Processo Judicial Eletrônico
+Vossa Excelência
+V. Ex.ª
+Excelentíssimo Senhor
+Excelentíssima Senhora
+Exmo. Sr.
+Exma. Sra.
+Excelentíssimo
+Excelentíssima
+Doutor
+Doutora
+Dr.
+Dra.
+Senhor
+Senhora
+Sr.
+Sra.
+Srt.ª
+Senhorita
+Vossa Senhoria
+V. S.ª
+Ilustríssimo Senhor
+Ilustríssima Senhora
+Ilmo. Sr.
+Ilma. Sra.
+Ilustríssimo
+Ilustríssima
+Meritíssimo Juiz
+Meritíssima Juíza
+MM. Juiz
+MM. Juíza
+Meritíssimo
+Meritíssima
+Vossa Magnificência
+V. Mag.ª
+Magnífico Reitor
+Magnífica Reitora
+Vossa Santidade
+V. S.
+Sua Santidade
+Vossa Eminência Reverendíssima
+V. Em.ª Revma.
+Vossa Reverendíssima
+V. Rev.ma
+Reverendíssimo
+Reverendíssima
+Vossa Paternidade
+V. P.
+Vossa Alteza
+V. A.
+Sua Alteza
+Vossa Majestade
+V. M.
+Sua Majestade
+Presidente
+Vice-Presidente
+Ministro
+Ministra
+Secretário
+Secretária
+Diretor
+Diretora
+Gerente
+Coordenador
+Coordenadora
+Chefe
+Assessor
+Assessora
+Consultor
+Consultora
+Conselheiro
+Conselheira
+Deputado
+Deputada
+Senador
+Senadora
+Vereador
+Vereadora
+Prefeito
+Prefeita
+Governador
+Governadora
+Embaixador
+Embaixatriz
+Cônsul
+Comandante
+General
+Almirante
+Brigadeiro
+Coronel
+Tenente-Coronel
+Major
+Capitão
+Tenente
+Sargento
+Cabo
+Soldado
+Delegado
+Delegada
+Inspetor
+Inspetora
+Agente
+Escrivão
+Escrivã
+Perito
+Perita
+Professor
+Professora
+Mestre
+Doutorando
+Doutoranda
+Pós-Doutorando
+Pós-Doutoranda
+Meritíssimo Doutor Juiz de Direito
+Excelentíssimo Senhor Doutor Juiz Federal
+Colendo
+Egrégio
+Ínclito
+Prezado Senhor
+Prezada Senhora
+Prezados Senhores
+Prezadas Senhoras
+Caro Colega
+Cara Colega
+Estimado
+Estimada
+Excelentíssimo(a) Senhor(a) Doutor(a) Juiz(a) Federal
+Excelentíssimo(a) Senhor(a) Doutor(a) Juiz(a) de Direito
+V.S.a.
+V.Exa.
+V.M.
+V.A.
+Exmo(a). Sr(a).
+Ilmo(a). Sr(a).
+Dom
+Dona
+Sua Excelência
+S. Ex.ª
+Sua Senhoria
+S. S.ª
+Digníssimo Senhor
+Digníssima Senhora
+DD.
+MD.
+M.D.
+Respeitável
+Respeitabilíssimo
+Nobre
+Ilustre
+Admirável
+Notável
+Eminente
+Respeitado
+Respeitada
+Preclaro
+Preclara
+Colendíssimo
+Colendíssima
+Digníssimo(a)
+Ilustríssimo(a)
+Meritíssimo(a)
+Reverendíssimo(a)
+Eminência
+Rev.mo(a).
+Revmo.
+Revma.
+Patriarca
+Matriarca
+Reitor
+Reitora
+Chanceler
+Pró-Reitor
+Pró-Reitora
+Decano
+Decana
+Diretor-Geral
+Diretora-Geral
+Secretário-Executivo
+Secretária-Executiva
+Procurador-Geral
+Procuradora-Geral
+Advogado-Geral
+Advogada-Geral
+Corregedor-Geral
+Corregedora-Geral
+Ouvidor-Geral
+Ouvidora-Geral
+Comissário
+Comissária
+Relator(a)
+Revisor(a)
+Vogal
+Membro
+Titular
+Suplente
+Presidente da República
+Governador(a) do Estado
+Prefeito(a) Municipal
+Excelentíssimo(a) Senhor(a) Presidente
+Excelentíssimo(a) Senhor(a) Governador(a)
+Excelentíssimo(a) Senhor(a) Prefeito(a)
+Excelentíssimo(a) Senhor(a) Ministro(a)
+Excelentíssimo(a) Senhor(a) Secretário(a) de Estado
+Excelentíssimo(a) Senhor(a) Desembargador(a)
+Excelentíssimo(a) Senhor(a) Procurador(a) da República
+Excelentíssimo(a) Senhor(a) Procurador(a) de Justiça
+Excelentíssimo(a) Senhor(a) Promotor(a) de Justiça
+Excelentíssimo(a) Senhor(a) Defensor(a) Público(a)-Geral
+Senhor(a) Diretor(a)
+Senhor(a) Gerente
+Senhor(a) Coordenador(a)
+Senhor(a) Chefe
+Senhor(a) Assessor(a)
+Senhor(a) Consultor(a)
+Senhor(a) Conselheiro(a)
+Senhor(a) Deputado(a)
+Senhor(a) Senador(a)
+Senhor(a) Vereador(a)
+Senhor(a) Comandante
+Senhor(a) General
+Senhor(a) Almirante
+Senhor(a) Brigadeiro
+Senhor(a) Coronel
+Senhor(a) Tenente-Coronel
+Senhor(a) Major
+Senhor(a) Capitão
+Senhor(a) Tenente
+Senhor(a) Sargento
+Senhor(a) Cabo
+Senhor(a) Soldado
+Senhor(a) Delegado(a)
+Senhor(a) Inspetor(a)
+Senhor(a) Agente
+Senhor(a) Escrivão(ã)
+Senhor(a) Perito(a)
+Senhor(a) Professor(a)
+Monsenhor
+Cardeal
+Arcebispo
+Bispo
+Padre
+Pastor
+Pastora
+Reverendo
+Reverenda
+Frei
+Madre
+Irmão
+Irmã
+Excelentíssimos Senhores
+Excelentíssimas Senhoras
+Ilustríssimos Senhores
+Ilustríssimas Senhoras
+Prezados(as)
+Caros(as)
+Estimados(as)
+Meritíssimos(as)
+Digníssimos(as)
+Vossa Excelência
+V. Ex
+1ª
+1º
+2ª
+2º
+3ª
+3º
+4ª
+4º
+5ª
+5º
+6ª
+6º
+7ª
+7º
+8ª
+8º
+9ª
+9º
+10ª
+10º
+11ª
+11º
+12ª
+12º
+13ª
+13º
+14ª
+14º
+15ª
+15º
+16ª
+16º
+17ª
+17º
+18ª
+18º
+19ª
+19º
+20ª
+20º
+21ª
+21º
+22ª
+22º
+23ª
+23º
+24ª
+24º
+25ª
+25º
+26ª
+26º
+27ª
+27º
+28ª
+28º
+29ª
+29º
+30ª
+30º
+31ª
+31º
+32ª
+32º
+33ª
+33º
+34ª
+34º
+35ª
+35º
+36ª
+36º
+37ª
+37º
+38ª
+38º
+39ª
+39º
+40ª
+40º
+41ª
+41º
+42ª
+42º
+43ª
+43º
+44ª
+44º
+45ª
+45º
+46ª
+46º
+47ª
+47º
+48ª
+48º
+49ª
+49º
+50ª
+50º
