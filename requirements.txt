@@ -1,14 +1,32 @@
+# Arquivo: requirements.txt
+# Versão corrigida e completa para o projeto AnonimizaJUD
+
+# --- Core do Streamlit e Widgets ---
 streamlit
-spacy
+streamlit-copy-to-clipboard # CORRIGIDO: Nome correto do pacote
+
+# --- Processamento de Texto e NLP (Presidio/Spacy) ---
+spacy==3.7.2 # Boa prática: fixar a versão para evitar quebras futuras
 presidio-analyzer
 presidio-anonymizer
+
+# --- Modelo de Linguagem Spacy para Português ---
+# ADICIONADO: Linha essencial para instalar o modelo no Streamlit Cloud
+https://github.com/explosion/spacy-models/releases/download/pt_core_news_lg-3.7.0/pt_core_news_lg-3.7.0-py3-none-any.whl
+
+# --- APIs de LLMs ---
+google-generativeai
+openai # REMOVIDO: Duplicata
+anthropic
+groq     # ADICIONADO: Causa original do erro
+tiktoken # ADICIONADO: Essencial para contagem de tokens
+
+# --- Manipulação de Arquivos e Dados ---
 pandas
-st-copy-to-clipboard
 PyMuPDF
 python-docx
-anthropic  # Para a versão com Claude
-openai     # Para a versão com OpenAI
 python-dotenv
-httpx      # Adicionado para a solução de proxy da OpenAI
-google-generativeai
-openai
+
+# --- Utilitários de Conexão ---
+httpx
+requests # ADICIONADO: Essencial para as chamadas ao Ollama
