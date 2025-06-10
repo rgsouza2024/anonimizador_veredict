@@ -24,39 +24,6 @@ import requests
 import json # Embora não usado diretamente no exemplo Ollama, pode ser útil para JSON payloads
 import tiktoken 
 
-
-# Sistema de fallback para Presidio
-PRESIDIO_ENABLED = True
-SPACY_MODEL_LOADED = False
-
-try:
-    import spacy
-    from presidio_analyzer import AnalyzerEngine, PatternRecognizer
-    from presidio_analyzer.nlp_engine import SpacyNlpEngine
-    from presidio_analyzer.pattern import Pattern
-    from presidio_anonymizer import AnonymizerEngine
-    from presidio_anonymizer.entities import OperatorConfig
-    
-    # Tentar carregar o modelo
-    try:
-        nlp = spacy.load('pt_core_news_lg')
-        SPACY_MODEL_LOADED = True
-    except:
-        # Tentar baixar o modelo
-        try:
-            os.system("python -m spacy download pt_core_news_lg")
-            nlp = spacy.load('pt_core_news_lg')
-            SPACY_MODEL_LOADED = True
-        except:
-            st.warning("⚠️ Modelo spaCy não disponível. Usando modo limitado.")
-            PRESIDIO_ENABLED = False
-            
-except ImportError as e:
-    st.warning(f"⚠️ Sistema de anonimização indisponível: {str(e)}")
-    PRESIDIO_ENABLED = False
-
-
-
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
 

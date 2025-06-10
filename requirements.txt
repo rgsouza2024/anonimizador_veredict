@@ -13,4 +13,4 @@ openai==1.58.1
 anthropic==0.40.0
 tiktoken==0.8.0
 httpx==0.28.1
-https://github.com/explosion/spacy-models/releases/download/pt_core_news_lg-3.5.0/pt_core_news_lg-3.5.0-py3-none-any.whl
+blis==0.7.9

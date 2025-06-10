@@ -1,15 +1,9 @@
+[server]
+maxUploadSize = 200
+
 [theme]
-# Cor primária para botões e elementos interativos
-primaryColor="#003366"  # Azul Justiça Federal
-
-# Cor de fundo principal da aplicação
-backgroundColor="#FFFFFF" # Branco
-
-# Cor de fundo para elementos secundários (como a sidebar, expanders)
-secondaryBackgroundColor="#EAEBED" # Um cinza bem claro, derivado do Cool Gray
-
-# Cor principal do texto
-textColor="#262730" # Um cinza escuro para boa legibilidade
-
-# Fonte padrão
+primaryColor="#003366"  
+backgroundColor="#FFFFFF" 
+secondaryBackgroundColor="#EAEBED" 
+textColor="#262730" 
 font="sans serif"
