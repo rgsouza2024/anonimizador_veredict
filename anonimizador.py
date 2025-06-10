@@ -1,5 +1,5 @@
 # Nome do arquivo: anonimizador.py
-# Versão 0.99 (Beta)
+# Versão 0.91 (Beta)
 
 import streamlit as st
 import spacy
@@ -23,39 +23,7 @@ import anthropic
 import requests 
 import json # Embora não usado diretamente no exemplo Ollama, pode ser útil para JSON payloads
 import tiktoken 
-
-
-# Sistema de fallback para Presidio
-PRESIDIO_ENABLED = True
-SPACY_MODEL_LOADED = False
-
-try:
-    import spacy
-    from presidio_analyzer import AnalyzerEngine, PatternRecognizer
-    from presidio_analyzer.nlp_engine import SpacyNlpEngine
-    from presidio_analyzer.pattern import Pattern
-    from presidio_anonymizer import AnonymizerEngine
-    from presidio_anonymizer.entities import OperatorConfig
-    
-    # Tentar carregar o modelo
-    try:
-        nlp = spacy.load('pt_core_news_lg')
-        SPACY_MODEL_LOADED = True
-    except:
-        # Tentar baixar o modelo
-        try:
-            os.system("python -m spacy download pt_core_news_lg")
-            nlp = spacy.load('pt_core_news_lg')
-            SPACY_MODEL_LOADED = True
-        except:
-            st.warning("⚠️ Modelo spaCy não disponível. Usando modo limitado.")
-            PRESIDIO_ENABLED = False
-            
-except ImportError as e:
-    st.warning(f"⚠️ Sistema de anonimização indisponível: {str(e)}")
-    PRESIDIO_ENABLED = False
-
-
+import httpx
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -65,17 +33,17 @@ NOME_ARQUIVO_SOBRENOMES = "sobrenomes_comuns.txt"
 NOME_ARQUIVO_TERMOS_COMUNS = "termos_comuns.txt"
 NOME_ARQUIVO_PROMPT_INSTRUCAO = "prompt_instrucao_llm_base.txt" 
 PATH_DA_LOGO = "Logo - AnonimizaJud.png" 
-SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown. think=false . /setnothink /no_think "
+SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown. /no_think "
 
 # Modelos LLM IDs
 MODELO_GEMINI = "gemini-2.0-flash-lite"
-MODELO_OPENAI = "gpt-4.1-nano-2025-04-14"
+MODELO_OPENAI = "gpt-4o-mini"
 MODELO_CLAUDE = "claude-3-5-haiku-latest"
 MODELO_GROQ_LLAMA3_70B = "llama-3.3-70b-versatile"
 MODELO_OLLAMA_GEMMA = "gemma3:12b" 
-MODELO_OLLAMA_DEEPSEEK = "deepseek-r1"
+MODELO_OLLAMA_DEEPSEEK = "deepseek-r1:14b"
 MODELO_OLLAMA_NEMOTRON = "nemotron-mini"
-MODELO_OLLAMA_QWEN = "qwen3:8b"
+MODELO_OLLAMA_QWEN = "qwen3:14b"
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 # --- Configuração da Página ---
@@ -104,6 +72,7 @@ KEY_LLM_OUTPUT_PDF_STATE = f"llm_output_pdf_state{VERSION_SUFFIX}"
 KEY_LLM_OUTPUT_AREA_STATE = f"llm_output_area_state{VERSION_SUFFIX}"
 KEY_COPY_LLM_PDF = f"copy_llm_pdf{VERSION_SUFFIX}"
 KEY_COPY_LLM_AREA = f"copy_llm_area{VERSION_SUFFIX}"
+KEY_CUSTOM_USER_PROMPT_LLM_INPUT = f"custom_user_prompt_llm_input{VERSION_SUFFIX}" # NOVA CHAVE
 KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM = f"texto_extraido_pdf_contagem{VERSION_SUFFIX}"
 KEY_NUM_TOKENS_PDF_EXTRAIDO = f"num_tokens_pdf_extraido{VERSION_SUFFIX}"
 
@@ -116,15 +85,21 @@ def callback_apagar_textos_area():
     # Limpa o dataframe de resultados
     if 'resultados_df_area' in st.session_state: # Usando chave sem sufixo como no seu último código
         st.session_state.resultados_df_area = pd.DataFrame()
+    
     # Limpa o output da LLM para a área de texto
     if KEY_LLM_OUTPUT_AREA_STATE in st.session_state:
         st.session_state[KEY_LLM_OUTPUT_AREA_STATE] = None
     
+    # Reseta o prompt customizado da aba de texto para o padrão global
+    custom_prompt_key_para_aba_area = f"{KEY_CUSTOM_USER_PROMPT_LLM_INPUT}_area"
+    if custom_prompt_key_para_aba_area in st.session_state:
+        st.session_state[custom_prompt_key_para_aba_area] = PROMPT_INSTRUCAO_LLM_BASE
+        
     # Limpeza de estados relacionados ao PDF, caso o botão seja considerado "Limpar Tudo"
     # Se for só para a aba de texto, remova estas linhas.
     if 'nome_arquivo_carregado' in st.session_state:
         st.session_state.nome_arquivo_carregado = None
-    if 'texto_anonimizado_arquivo' in st.session_state: 
+    if 'texto_anonimizado_arquivo' in st.session_state:
         st.session_state.texto_anonimizado_arquivo = None
     if KEY_TEXTO_ORIGINAL_PDF_DISPLAY in st.session_state:
         st.session_state[KEY_TEXTO_ORIGINAL_PDF_DISPLAY] = ""
@@ -134,6 +109,7 @@ def callback_apagar_textos_area():
         st.session_state[KEY_TEXTO_EXTRAIDO_PDF_CONTAGEM] = ""
     if KEY_NUM_TOKENS_PDF_EXTRAIDO in st.session_state:
         st.session_state[KEY_NUM_TOKENS_PDF_EXTRAIDO] = 0
+   
 
 def carregar_lista_de_arquivo(nome_arquivo):
     lista_itens = []
@@ -172,6 +148,61 @@ def carregar_texto_de_arquivo(nome_arquivo: str) -> str | None:
         st.error(f"Erro ao ler o arquivo de prompt '{nome_arquivo}': {e}")
         return None
 
+def render_header():
+    """Renderiza o header compacto e profissional da aplicação"""
+    # Primeiro, tenta carregar e codificar a imagem em base64
+    import base64
+    logo_base64 = ""
+    try:
+        with open(PATH_DA_LOGO, "rb") as f:
+            logo_base64 = base64.b64encode(f.read()).decode()
+    except:
+        pass  # Se não conseguir carregar a logo, continua sem ela
+    
+    # HTML do header
+    header_html = f"""
+    <div style="display: flex; align-items: center; padding: 1rem 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 2rem;">
+        {f'<img src="data:image/png;base64,{logo_base64}" style="height: 80px; margin-right: 20px;">' if logo_base64 else ''}
+        <div>
+            <h1 style="margin: 0; color: #003366; font-size: 2.5rem; font-weight: 700;">Anonimizador</h1>
+            <p style="margin: 0; color: #666; font-size: 1rem;">
+                Proteja informações sensíveis em seus documentos com tecnologia avançada de IA
+            </p>
+        </div>
+        <div style="margin-left: auto; text-align: right; padding-right: 1rem;">
+            <span style="background: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;">
+                Versão 0.91 Beta
+            </span>
+        </div>
+    </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+
+def show_loading_message(message="Processando..."):
+    """Mostra indicador de loading inline"""
+    return st.markdown(f'<div style="display: flex; align-items: center; margin: 1rem 0;"><div class="loading-spinner"></div><span style="color: #007bff; font-weight: 500;">{message}</span></div>', unsafe_allow_html=True)
+
+def show_success_animation(container):
+    """Aplica animação de sucesso ao container"""
+    with container:
+        st.markdown('<div class="fade-in">', unsafe_allow_html=True)
+
+def close_success_animation():
+    """Fecha a div de animação"""
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def create_card(title="", icon="", help_text=""):
+    """Cria um card visual para melhor organização do conteúdo"""
+    card_html = f"""
+    <div style="background: white; padding: 1.5rem; border-radius: 10px; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem;
+                border: 1px solid #e0e0e0;">
+        {f'<h3 style="color: #003366; margin-bottom: 1rem; display: flex; align-items: center;"><span style="font-size: 1.5rem; margin-right: 0.5rem;">{icon}</span>{title}</h3>' if title else ''}
+        {f'<p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">{help_text}</p>' if help_text else ''}
+    </div>
+    """
+    return card_html
+
 # Carregando o PROMPT_INSTRUCAO_LLM_BASE do arquivo .txt
 PROMPT_INSTRUCAO_LLM_BASE = carregar_texto_de_arquivo(NOME_ARQUIVO_PROMPT_INSTRUCAO)
 
@@ -180,8 +211,7 @@ if PROMPT_INSTRUCAO_LLM_BASE is None or not PROMPT_INSTRUCAO_LLM_BASE.strip():
     st.error(f"ATENÇÃO: Não foi possível carregar o prompt de instrução do arquivo '{NOME_ARQUIVO_PROMPT_INSTRUCAO}'. "
              "Verifique se o arquivo existe na mesma pasta do script e não está vazio. "
              "Usando um prompt de instrução padrão genérico.")
-    # Defina um prompt padrão aqui se o carregamento falhar
-    PROMPT_INSTRUCAO_LLM_BASE = """Instrução padrão de fallback: Faça um resumo detalhado do texto fornecido, omitindo informações pessoais ou sensíveis, e substituindo tags por expressões genéricas."""
+    PROMPT_INSTRUCAO_LLM_BASE = """Instrução padrão de fallback: Faça um resumo detalhado do texto fornecido, omitindo informações pessoais ou sensíveis, e substituindo tags por expressões genéricas. /setnothink /no_think """
 
 # --- Listas Estáticas (Completas) ---
 LISTA_ESTADOS_CAPITAIS_BR = [
@@ -466,7 +496,7 @@ def contar_tokens_para_estimativa(texto: str, llm_provider: str = "openai") -> i
         elif llm_provider == "ollama": 
             return len(texto.split()) # Estimativa grosseira para Ollama/Gemma
         else: 
-            encoding = tiktoken.encoding_for_model("gpt-4.1-nano") 
+            encoding = tiktoken.encoding_for_model("gpt-4o-mini") 
     except KeyError:
         try: encoding = tiktoken.get_encoding("cl100k_base")
         except: return len(texto.split()) 
@@ -505,13 +535,13 @@ def reescrever_texto_com_openai(texto_anonimizado: str, system_prompt: str, user
         client = openai.OpenAI(api_key=api_key, http_client=meu_http_client)
         
         response = client.chat.completions.create(
-            model=MODELO_OPENAI, # ex: "gpt-4.1-nano"
+            model=MODELO_OPENAI, 
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"{user_prompt_instruction}\n\nTexto anonimizado para reescrever:\n\n---\n{texto_anonimizado}\n---"}
             ],
             temperature=0.3, 
-            max_tokens=32768 # Limite para gpt-4.1-nano, ajuste se necessário
+            max_tokens=16384 
         )
         if response.choices and response.choices[0].message and response.choices[0].message.content:
             return response.choices[0].message.content.strip()
@@ -614,6 +644,7 @@ def reescrever_texto_com_groq(texto_anonimizado: str, system_prompt: str, user_p
         st.warning(f"Groq ({MODELO_GROQ_LLAMA3_70B}): Não há texto anonimizado para reescrever.")
         return None
     try:
+        # Correção: Usar apenas api_key, sem parâmetros extras
         client = Groq(api_key=api_key)
         
         messages = [
@@ -625,8 +656,8 @@ def reescrever_texto_com_groq(texto_anonimizado: str, system_prompt: str, user_p
             messages=messages,
             model=MODELO_GROQ_LLAMA3_70B,
             temperature=0.3,
-            max_tokens=32768, 
-            # Outros parâmetros como top_p, stream podem ser adicionados se necessário
+            max_tokens=32768,
+            # Remover parâmetros que podem causar conflito
         )
         
         if chat_completion.choices and chat_completion.choices[0].message and chat_completion.choices[0].message.content:
@@ -634,10 +665,12 @@ def reescrever_texto_com_groq(texto_anonimizado: str, system_prompt: str, user_p
         else:
             st.error(f"A LLM (Groq - {MODELO_GROQ_LLAMA3_70B}) não retornou uma resposta de conteúdo válida.")
             return None
+            
     except Exception as e: 
-        # A biblioteca groq pode ter exceções específicas (ex: groq.APIError)
-        # Capturar genérico por enquanto, mas pode ser refinado.
-        if "API key" in str(e).lower() or "authentication" in str(e).lower():
+        # Tratamento mais específico para problemas de inicialização
+        if "unexpected keyword argument" in str(e).lower():
+            st.error(f"Erro de compatibilidade com a biblioteca Groq. Tente atualizar: pip install --upgrade groq")
+        elif "API key" in str(e).lower() or "authentication" in str(e).lower():
             st.error(f"Erro de autenticação com a API da Groq. Verifique sua GROQ_API_KEY: {e}")
         else:
             st.error(f"Erro com Groq ({MODELO_GROQ_LLAMA3_70B}): {type(e).__name__} - {e}")
@@ -696,7 +729,7 @@ LLM_CONFIGS = {
         "rewrite_function": reescrever_texto_com_gemini,
         "token_estimator_model": "gemini_estimate"
     },
-    "OpenAI GPT-4.1 nano": {
+    "OpenAI GPT-4o mini": {
         "id": "openai", "model_api_name": MODELO_OPENAI,
         "key_loader_function": lambda: carregar_chave_api("OPENAI_API_KEY", "OPENAI_API_KEY", "OpenAI"),
         "rewrite_function": reescrever_texto_com_openai,
@@ -746,32 +779,79 @@ LLM_CONFIGS = {
     }
 }
 # --- Interface Streamlit Principal ---
-# Ajuste para diminuir o padding no topo se quiser o logo bem no alto
-st.markdown("<style>div.block-container{padding-top:3rem !important;}</style>", unsafe_allow_html=True)
-
-# Cria duas colunas: 20% para a logo, 80% para o conteúdo principal
-col_logo, col_principal = st.columns([0.1, 0.9]) 
-
-with col_logo: # Coluna da esquerda para a logo
-    try:
-        # Ajuste o width para que a logo se encaixe bem nos 20% da coluna,
-        # ou use use_column_width=True para que ela tente preencher a coluna.
-        # Se o logo for muito largo, 'auto' ou 'always' podem distorcê-lo se não tiver proporção correta.
-        # Um width fixo pode ser melhor aqui.
-        st.image(PATH_DA_LOGO, width=200) # Experimente com 150px, 200px, etc.
-    except FileNotFoundError:
-        st.error(f"Logo '{PATH_DA_LOGO}' não encontrada.")
-    except Exception as e:
-        st.warning(f"Logo não pôde ser carregada: {e}")
-
-with col_principal: # Coluna da direita para o restante do cabeçalho e conteúdo
-    # Se você quiser um título aqui, ele ficará ao lado da logo
-    st.markdown("<h3 style='text-align: left; margin-top: 0px; margin-bottom: 10px;'>Anonimizador</h3>", unsafe_allow_html=True)
-    st.caption("Proteja informações sensíveis em seus documentos, com a opção de gerar um resumo jurídico inteligente do conteúdo anonimizado.")
+# Adicionar ao CSS customizado
+st.markdown("""
+<style>
+    /* Tabs mais modernas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #f0f2f6;
+        padding: 4px;
+        border-radius: 10px;
+    }
     
-st.markdown("---") # Divisor abaixo da linha da logo/título
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        padding: 0 24px;
+        background-color: transparent;
+        border-radius: 8px;
+        color: #555;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: white !important;
+        color: #003366 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Animações de Loading */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+        vertical-align: middle;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Fade-in suave para resultados */
+    .fade-in {
+        animation: fadeIn 0.8s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Pulse Effect para Upload */
+    .upload-pulse {
+        animation: uploadPulse 2s infinite;
+        border-radius: 8px;
+    }
+    
+    @keyframes uploadPulse {
+        0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# O restante do seu código (abas, etc.) viria aqui, fora das colunas do cabeçalho
+# Renderizar o novo header
+render_header()
+
+# O restante do código (abas, etc.) continua aqui
 tab_pdf, tab_texto = st.tabs(["🗂️ Anonimizar Arquivo PDF", "⌨️ Anonimizar Texto Colado"])
 
 # Inicialização de estados para garantir que todas as chaves existem
@@ -797,64 +877,94 @@ st.session_state.setdefault(KEY_TEXTO_ORIGINAL_AREA, (
     # A última linha não precisa de um \n\n extra, a menos que você queira um espaço duplo antes do usuário começar a digitar.
 ))
 
-# Função genérica para exibir a seção da LLM, agora movida para antes de ser chamada
+# Função genérica para exibir a seção da LLM
 def exibir_secao_llm(texto_anonimizado_atual, key_llm_output_state, key_llm_choice, key_llm_rewrite_btn, key_copy_llm, tab_id_suffix):
     if texto_anonimizado_atual:
         st.divider()
         st.subheader("Passo 3 (Opcional): Gere um resumo jurídico com IA")
-        
+
         llm_display_names = list(LLM_CONFIGS.keys())
-        selectbox_key = f"{key_llm_choice}_{tab_id_suffix}" # Chave única para selectbox
-        
-        # Garantir que o selectbox tenha um valor padrão no session_state se ainda não tiver
+        selectbox_key = f"{key_llm_choice}_{tab_id_suffix}"
+
         st.session_state.setdefault(selectbox_key, llm_display_names[0])
 
         selected_llm_display_name = st.selectbox(
             "Escolha o modelo de IA para o resumo:",
             options=llm_display_names,
-            key=selectbox_key # Usa a chave já inicializada
+            key=selectbox_key
         )
-        
+
         config_llm_selecionada = LLM_CONFIGS[selected_llm_display_name]
-        
+
         st.caption(f"Esta etapa usa o modelo {selected_llm_display_name.split('(')[0].strip()} para gerar o resumo.")
 
-        button_key = f"{key_llm_rewrite_btn}_{tab_id_suffix}" # Chave única para botão
+        # --- Seção para o prompt de instrução customizável ---
+        # expander_key = f"expander_custom_prompt_{tab_id_suffix}" # Não é mais necessário
+        custom_prompt_area_key = f"{KEY_CUSTOM_USER_PROMPT_LLM_INPUT}_{tab_id_suffix}"
+
+        st.session_state.setdefault(custom_prompt_area_key, PROMPT_INSTRUCAO_LLM_BASE)
+
+        # Removido key=expander_key daqui:
+        with st.expander("Personalizar Instrução para a IA (Opcional)"): 
+            st.markdown("""
+            <small>Esta instrução detalhada guia a IA sobre como reescrever o texto anonimizado e substituir as tags (ex: <code>&lt;NOME&gt;</code>) por expressões genéricas.
+            Modifique com cuidado, pois uma instrução mal formulada pode levar a resultados insatisfatórios. O texto abaixo é o padrão carregado do sistema.</small>
+            """, unsafe_allow_html=True)
+            
+            st.text_area(
+                label="Instrução da Tarefa para a LLM (editável):",
+                value=st.session_state[custom_prompt_area_key],
+                key=custom_prompt_area_key,
+                height=200,
+                help="Defina como a IA deve processar o texto anonimizado. O padrão é focado em redação jurídica fluida, substituindo tags por expressões genéricas sem usar markdown."
+            )
+        # --- Fim da seção do prompt customizável ---
+
+        button_key = f"{key_llm_rewrite_btn}_{tab_id_suffix}"
         if st.button(f"✨ Gerar Resumo com {selected_llm_display_name.split('(')[0].strip()}", key=button_key, type="primary"):
             api_key_ou_status = config_llm_selecionada["key_loader_function"]()
-            
-            if api_key_ou_status and texto_anonimizado_atual: 
+
+            if api_key_ou_status and texto_anonimizado_atual:
                 with st.spinner(f"{selected_llm_display_name.split('(')[0].strip()} está trabalhando na reescrita... Por favor, aguarde."):
                     texto_reescrito = None
-                    if config_llm_selecionada["id"] == "ollama": 
+                    current_user_instruction_prompt = st.session_state.get(custom_prompt_area_key, PROMPT_INSTRUCAO_LLM_BASE)
+
+                    if not current_user_instruction_prompt or not current_user_instruction_prompt.strip():
+                        st.warning("A instrução para a IA estava vazia. Usando a instrução padrão do sistema.")
+                        current_user_instruction_prompt = PROMPT_INSTRUCAO_LLM_BASE
+                        st.session_state[custom_prompt_area_key] = PROMPT_INSTRUCAO_LLM_BASE
+                    
+                    if config_llm_selecionada["id"].startswith("ollama"):
                         texto_reescrito = config_llm_selecionada["rewrite_function"](
-                            texto_anonimizado_atual, 
-                            SYSTEM_PROMPT_BASE, 
-                            PROMPT_INSTRUCAO_LLM_BASE,
-                            None # api_key não é passada diretamente, função lambda lida com model_name
+                            texto_anonimizado_atual,
+                            SYSTEM_PROMPT_BASE,
+                            current_user_instruction_prompt,
+                            None
                         )
-                    else: 
-                         texto_reescrito = config_llm_selecionada["rewrite_function"](
-                            texto_anonimizado_atual, 
-                            SYSTEM_PROMPT_BASE, 
-                            PROMPT_INSTRUCAO_LLM_BASE,
-                            api_key_ou_status 
+                    else:
+                        texto_reescrito = config_llm_selecionada["rewrite_function"](
+                            texto_anonimizado_atual,
+                            SYSTEM_PROMPT_BASE,
+                            current_user_instruction_prompt,
+                            api_key_ou_status
                         )
                     st.session_state[key_llm_output_state] = texto_reescrito
-            elif not api_key_ou_status and config_llm_selecionada["id"] != "ollama": pass 
-            elif not texto_anonimizado_atual: st.warning("Não há texto anonimizado para reescrever.")
+            elif not api_key_ou_status and not config_llm_selecionada["id"].startswith("ollama"):
+                pass
+            elif not texto_anonimizado_atual:
+                st.warning("Não há texto anonimizado para reescrever.")
 
         texto_llm_atual = st.session_state.get(key_llm_output_state)
         if texto_llm_atual:
-            output_area_key = f"llm_output_display_{tab_id_suffix}" # Chave única para text_area
-            copy_button_key = f"{key_copy_llm}_{tab_id_suffix}" # Chave única para botão de cópia
+            output_area_key = f"llm_output_display_{tab_id_suffix}"
+            copy_button_key = f"{key_copy_llm}_{tab_id_suffix}"
             st.text_area(f"Resumo Gerado por {selected_llm_display_name.split('(')[0].strip()}:", value=texto_llm_atual, height=300, disabled=True, key=output_area_key)
             st_copy_to_clipboard(texto_llm_atual, f"📋 Copiar Resumo ({selected_llm_display_name.split('(')[0].strip()})", key=copy_button_key)
-        elif texto_anonimizado_atual: 
-            st.caption("Selecione uma LLM e clique no botão acima para gerar um resumo jurídico do texto anonimizado.")
-
+        elif texto_anonimizado_atual:
+            st.caption("Selecione uma LLM, ajuste a instrução (opcional) e clique no botão acima para gerar um resumo jurídico do texto anonimizado.")
 
 with tab_pdf:
+       
     st.subheader("Passo 1: Carregue seu documento PDF")
     arquivo_pdf_carregado = st.file_uploader(
         "Selecione o arquivo PDF para anonimização:", 
@@ -862,6 +972,7 @@ with tab_pdf:
         key=KEY_PDF_UPLOADER,
         help="Apenas arquivos .pdf são aceitos."
     )
+
     st.caption("Limite de 200MB por arquivo.")
 
     if arquivo_pdf_carregado is not None:
@@ -977,7 +1088,9 @@ with tab_pdf:
                          KEY_COPY_LLM_PDF, 
                          "pdf") # tab_id_suffix para chaves únicas
 with tab_texto:
+     
     st.subheader("Passo 1: Insira o texto para anonimizar")
+
     col_original, col_anonimizado = st.columns(2)
     with col_original:
         st.markdown("##### Texto Original")
@@ -998,7 +1111,7 @@ with tab_texto:
     
     st.divider()
     st.subheader("Passo 2: Anonimize o texto da área")
-    if st.button("✨ Anonimizar Texto da Área", type="primary", key=KEY_BOTAO_ANONIMIZAR_AREA, 
+    if st.button("🔍 Anonimizar Texto da Área", type="primary", key=KEY_BOTAO_ANONIMIZAR_AREA, 
                   disabled=(not analyzer_engine or not anonymizer_engine)):
         texto_para_processar = st.session_state.get(KEY_TEXTO_ORIGINAL_AREA, "")
         st.session_state[KEY_LLM_OUTPUT_AREA_STATE] = None # Limpa resumo anterior
@@ -1067,7 +1180,7 @@ st.sidebar.header("Sobre")
 sidebar_text_sobre = """
 **AnonimizaJUD**
 
-Versão 0.99 (Beta) 
+Versão 0.91 (Beta) 
 
 Desenvolvido por:
 
