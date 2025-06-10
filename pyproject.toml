@@ -1,0 +1,6 @@
+# Arquivo: pyproject.toml
+# Configuração do projeto para definir a versão do Python
+
+[project]
+name = "anonimizador-veredict"
+requires-python = ">=3.11,<3.12"

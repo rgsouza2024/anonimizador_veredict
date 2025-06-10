@@ -1,17 +1,13 @@
 # Arquivo: requirements.txt
-# Versão v3 - Com versões fixas para garantir build no Streamlit Cloud
+# Versão v4 - Simplificada para rodar com Python 3.11 definido no pyproject.toml
 
-# --- Core do Streamlit e Widgets ---
-streamlit==1.35.0
-streamlit-copy-to-clipboard
+# --- Core do Streamlit ---
+streamlit
 
 # --- Processamento de Texto e NLP (Presidio/Spacy) ---
-# Fixando versões compatíveis para evitar compilação de dependências
-spacy==3.7.5
-blis==0.7.11
-thinc==8.2.5
-presidio-analyzer==2.2.351
-presidio-anonymizer==2.2.351
+spacy==3.7.5 # Apenas spacy precisa ser fixado, o resto será resolvido
+presidio-analyzer
+presidio-anonymizer
 
 # --- Modelo de Linguagem Spacy para Português ---
 https://github.com/explosion/spacy-models/releases/download/pt_core_news_lg-3.7.0/pt_core_news_lg-3.7.0-py3-none-any.whl
@@ -31,4 +27,4 @@ python-docx
 python-dotenv
 
 # --- Utilitários de Conexão ---
-requests
+requests 
