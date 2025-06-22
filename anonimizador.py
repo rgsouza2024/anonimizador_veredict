@@ -36,7 +36,7 @@ PATH_DA_LOGO = "Logo - AnonimizaJud.png"
 SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown. /no_think "
 
 # Modelos LLM IDs
-MODELO_GEMINI = "gemini-2.0-flash-lite"
+MODELO_GEMINI = "gemini-2.5-flash-lite-preview-06-17"  # Atualizado para Gemini 2.5 Flash Lite Preview
 MODELO_OPENAI = "gpt-4o-mini"
 MODELO_CLAUDE = "claude-3-5-haiku-latest"
 MODELO_GROQ_LLAMA3_70B = "llama-3.3-70b-versatile"
@@ -588,7 +588,7 @@ def reescrever_texto_com_gemini(texto_anonimizado: str, system_prompt: str, user
     try:
         genai.configure(api_key=api_key)
         generation_config = genai.types.GenerationConfig(
-            max_output_tokens=8192, # Limite para Gemini Flash, ajuste se necessário
+            max_output_tokens=64000,  # Atualizado para 64k tokens
             temperature=0.3
         )
         safety_settings = [ # Configurações de segurança mais permissivas para teste
@@ -596,7 +596,7 @@ def reescrever_texto_com_gemini(texto_anonimizado: str, system_prompt: str, user
             for cat in ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT"]
         ]
         model = genai.GenerativeModel(
-            model_name=MODELO_GEMINI, # ex: "gemini-1.5-flash-latest"
+            model_name=MODELO_GEMINI, # ex: "gemini-2.5-flash-lite-preview-06-17"
             system_instruction=system_prompt, # Gemini suporta system_instruction
             generation_config=generation_config,
             safety_settings=safety_settings
@@ -723,7 +723,7 @@ def reescrever_texto_com_ollama(texto_anonimizado: str, system_prompt: str, user
 
 # --- Dicionário de Configurações das LLMs ---
 LLM_CONFIGS = {
-    "Google Gemini 2.0 Flash": {
+    "Google Gemini 2.5 Flash Lite": {  # Atualizado nome exibido
         "id": "gemini", "model_api_name": MODELO_GEMINI, 
         "key_loader_function": lambda: carregar_chave_api("GOOGLE_API_KEY", "GOOGLE_API_KEY", "Google Gemini"),
         "rewrite_function": reescrever_texto_com_gemini,
