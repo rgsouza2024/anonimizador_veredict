@@ -596,7 +596,7 @@ def reescrever_texto_com_gemini(texto_anonimizado: str, system_prompt: str, user
             for cat in ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT"]
         ]
         model = genai.GenerativeModel(
-            model_name=MODELO_GEMINI, # ex: "gemini-2.5-flash-lite-preview-06-17"
+            model_name=MODELO_GEMINI, 
             system_instruction=system_prompt, # Gemini suporta system_instruction
             generation_config=generation_config,
             safety_settings=safety_settings
