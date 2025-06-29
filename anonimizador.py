@@ -1314,3 +1314,4 @@ st.sidebar.markdown(
     "- Trata-se de ferramenta em desenvolvimento.\n"
     "- Sempre confira o resultado gerado (a IA pode cometer erro)."
 )
+
