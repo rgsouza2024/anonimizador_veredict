@@ -848,6 +848,119 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Toggle de Tema (Claro/Escuro) ---
+col_toggle, col_logo, col_title = st.columns([2,0.1,8])
+with col_toggle:
+    st.markdown("""
+    <style>
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-bottom: 0.5em;
+        }
+        .toggle-row label {
+            margin-bottom: 0 !important;
+            white-space: nowrap;
+            font-weight: 500;
+            font-size: 1.1em;
+            color: #FFD700;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    modo_escuro = st.toggle("", value=False, key="toggle_tema")
+    st.markdown(
+        '<div class="toggle-row">'
+        f'<span style="margin-left: 0.5em;">🌙 Modo Escuro</span>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+if modo_escuro:
+    st.markdown("""
+    <style>
+        body, .stApp {
+            background-color: #18191A !important;
+            color: #F5F6F7 !important;
+        }
+        /* Header e cards */
+        div[data-testid="stMarkdownContainer"] > div[style*="display: flex"] {
+            background: #23272F !important;
+            border-radius: 12px !important;
+            border: 1px solid #222 !important;
+        }
+        /* Título principal do header */
+        h1, h1 span, h1 strong {
+            color: #FFF !important;
+        }
+        /* Subtítulo do header */
+        div[data-testid="stMarkdownContainer"] p {
+            color: #BBB !important;
+        }
+        /* Botões */
+        .stButton>button, .stDownloadButton>button, .stCopyToClipboard>button {
+            background-color: #222 !important;
+            color: #FFD700 !important;
+            border: 1px solid #444 !important;
+        }
+        .stButton>button:active, .stButton>button:focus, .stButton>button:hover {
+            background-color: #333 !important;
+            color: #FFF !important;
+            border: 1px solid #FFD700 !important;
+        }
+        /* Áreas de texto e inputs */
+        .stTextArea textarea, textarea, .stTextInput input {
+            background-color: #23272F !important;
+            color: #FFF !important;
+            border: 1px solid #444 !important;
+            font-weight: 500 !important;
+        }
+        /* Força texto branco em textarea desabilitado */
+        .stTextArea textarea:disabled, textarea:disabled {
+            background-color: #23272F !important;
+            color: #FFF !important;
+            opacity: 1 !important;
+            -webkit-text-fill-color: #FFF !important;
+        }
+        /* Força cor do texto em todos os estados */
+        .stTextArea textarea, .stTextArea textarea:disabled, textarea, textarea:disabled {
+            color: #FFF !important;
+            -webkit-text-fill-color: #FFF !important;
+            opacity: 1 !important;
+        }
+        /* Placeholder do textarea */
+        .stTextArea textarea::placeholder {
+            color: #AAA !important;
+            opacity: 1 !important;
+        }
+        /* Tabs */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: #23272F !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            color: #F5F6F7 !important;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #18191A !important;
+            color: #FFD700 !important;
+        }
+        /* Expander */
+        .stExpanderHeader {
+            color: #FFD700 !important;
+        }
+        /* DataFrame */
+        .stDataFrame, .stTable {
+            background-color: #23272F !important;
+            color: #F5F6F7 !important;
+        }
+        /* Sidebar */
+        .stSidebar, .stSidebarContent {
+            background-color: #18191A !important;
+            color: #F5F6F7 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Renderizar o novo header
 render_header()
 
