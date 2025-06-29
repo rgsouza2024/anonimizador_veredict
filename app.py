@@ -16,15 +16,19 @@ os.makedirs(streamlit_config_dir, exist_ok=True)
 # Criar config.toml
 config_content = """
 [theme]
-primaryColor = "#0066CC"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#262730"
+primaryColor = "#1f4e79"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f8f9fa"
+textColor = "#2c3e50"
+font = "sans serif"
 
 [server]
 maxUploadSize = 200
 enableCORS = false
 enableXsrfProtection = false
+
+[client]
+showErrorDetails = false
 """
 
 with open(f'{streamlit_config_dir}/config.toml', 'w') as f:

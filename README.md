@@ -10,56 +10,135 @@ pinned: false
 license: mit
 ---
 
-# Anonimizador Jurídico v0.98 (Beta)
+# AnonimizaJUD - Proteção Inteligente de Dados
 
-**Ferramenta avançada para anonimização de documentos jurídicos com IA**
+Uma aplicação moderna e profissional para anonimização de documentos jurídicos usando inteligência artificial.
 
-Desenvolvido por: Juiz Federal Rodrigo Gonçalves de Souza
+## 🚀 Novidades na Versão 0.91 Beta
 
-## 🎯 Funcionalidades
+### ✨ Interface Modernizada
+- **Design System Profissional**: Cores e tipografia consistentes com a identidade visual
+- **Layout Responsivo**: Interface adaptável para diferentes tamanhos de tela
+- **Componentes Visuais**: Cards, badges e ícones modernos
+- **Animações Suaves**: Transições e efeitos visuais aprimorados
+- **UX Melhorada**: Feedback visual e navegação intuitiva
 
-### 📋 Anonimização em Duas Camadas
-1. **Camada 1:** Detecção e substituição automática de dados pessoais (PII)
-2. **Camada 2:** Geração de resumo jurídico com IA (opcional)
+### 🎨 Melhorias Visuais
+- **Header Gradiente**: Design moderno com logo e informações da versão
+- **Cards Informativos**: Apresentação clara das funcionalidades
+- **Alertas Customizados**: Mensagens de status com ícones e cores
+- **Tabelas Estilizadas**: Visualização melhorada dos resultados
+- **Sidebar Organizada**: Informações estruturadas e acessíveis
 
-### 🔍 Detecção de Dados Pessoais
-- Nomes completos
-- CPFs, RGs, OABs
-- Endereços e CEPs
-- Telefones e e-mails
-- Preservação inteligente de termos jurídicos
+### 🛠️ Funcionalidades Técnicas
+- **CSS Customizado**: Estilos modernos com variáveis CSS
+- **Componentes Reutilizáveis**: Código modular e organizado
+- **Responsividade**: Interface adaptável para mobile e desktop
+- **Acessibilidade**: Melhor contraste e navegação por teclado
 
-### 🤖 Modelos de IA Suportados
-- Google Gemini
-- OpenAI GPT
-- Anthropic Claude
-- Groq Llama
-- Modelos locais via Ollama
+## 📋 Funcionalidades
 
-## 📱 Como Usar
+### 🔍 Anonimização Automática
+- **Detecção Inteligente**: Identifica automaticamente informações pessoais
+- **Múltiplos Formatos**: Suporte para PDF e texto colado
+- **Exportação DOCX**: Gera documentos Word anonimizados
+- **Tags Estruturadas**: Marcação consistente de dados sensíveis
 
-1. **Upload de PDF** ou **Cole o texto** na área designada
-2. Clique em **Anonimizar** para processar (Camada 1)
-3. Opcionalmente, gere um **resumo com IA** (Camada 2)
-4. Baixe ou copie o resultado
+### 🤖 IA Avançada
+- **Múltiplos Modelos**: OpenAI, Claude, Gemini, Groq, Ollama
+- **Resumos Jurídicos**: Geração inteligente de textos anonimizados
+- **Instruções Customizáveis**: Controle sobre o processamento da IA
+- **Estimativa de Tokens**: Controle de custos e limites
 
-## 🔐 Privacidade
+### 📊 Análise Detalhada
+- **Entidades Detectadas**: Visualização das informações encontradas
+- **Scores de Confiança**: Métricas de precisão da detecção
+- **Estatísticas em Tempo Real**: Informações sobre o processamento
 
-- Processamento seguro de documentos sensíveis
-- Dados não são armazenados permanentemente
-- Compatível com LGPD
+## 🛡️ Segurança e Privacidade
 
-## ⚠️ Aviso Legal
+- **Processamento Local**: Opção de usar modelos Ollama localmente
+- **Sem Armazenamento**: Dados não são salvos permanentemente
+- **Anonimização Robusta**: Múltiplas camadas de proteção
+- **Conformidade LGPD**: Adequado para uso jurídico brasileiro
 
-Esta é uma versão beta (0.98). Sempre revise os resultados gerados antes de usar em contextos oficiais.
+## 🚀 Como Usar
 
-## 🛠️ Tecnologias
+### 1. Anonimização (Camada 1)
+- **PDF**: Carregue um arquivo PDF e clique em "Anonimizar PDF Carregado"
+- **Texto**: Cole o texto na área e clique em "Anonimizar Texto da Área"
 
-- Python + Streamlit
-- Presidio Analyzer
-- spaCy (PLN em português)
-- APIs de LLMs modernas
+### 2. Resumo com IA (Camada 2 - Opcional)
+- Selecione o modelo de IA desejado
+- Ajuste as instruções (opcional)
+- Clique em "Gerar Resumo"
+
+### 3. Exportação
+- Copie o texto anonimizado
+- Baixe como arquivo DOCX
+- Visualize as entidades detectadas
+
+## 🛠️ Instalação
+
+```bash
+# Clone o repositório
+git clone [url-do-repositorio]
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Execute a aplicação
+streamlit run app.py
+```
+
+## 📦 Dependências
+
+- **Streamlit**: Interface web
+- **Presidio**: Anonimização de dados
+- **spaCy**: Processamento de linguagem natural
+- **PyMuPDF**: Extração de texto de PDF
+- **python-docx**: Geração de documentos Word
+- **APIs de IA**: OpenAI, Anthropic, Google, Groq
+
+## 🎯 Casos de Uso
+
+- **Documentos Jurídicos**: Anonimização de petições e decisões
+- **Relatórios**: Proteção de dados em documentos corporativos
+- **Pesquisas**: Anonimização de dados para estudos
+- **Compliance**: Adequação à LGPD e outras regulamentações
+
+## 👨‍💻 Desenvolvimento
+
+### Estrutura do Projeto
+```
+anonimizador_veredict/
+├── anonimizador.py          # Aplicação principal
+├── components.py            # Componentes de interface
+├── style.css               # Estilos customizados
+├── .streamlit/config.toml  # Configuração do Streamlit
+├── requirements.txt        # Dependências Python
+└── README.md              # Documentação
+```
+
+### Personalização
+- **Cores**: Edite as variáveis CSS em `style.css`
+- **Componentes**: Modifique `components.py`
+- **Configuração**: Ajuste `.streamlit/config.toml`
+
+## 📞 Suporte
+
+**Desenvolvido por:**
+- Juiz Federal Rodrigo Gonçalves de Souza
+
+**Versão:** 0.91 Beta
+
+## ⚠️ Importante
+
+- Esta é uma ferramenta em desenvolvimento
+- Sempre confira os resultados gerados
+- A IA pode cometer erros
+- Use com responsabilidade em documentos sensíveis
 
 ---
 
-**Nota:** Para usar os modelos de IA, configure suas chaves de API nas variáveis de ambiente do Space.
+*Desenvolvido com ❤️ para a comunidade jurídica brasileira*
