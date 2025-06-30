@@ -5,7 +5,7 @@ colorFrom: blue
 colorTo: purple
 sdk: streamlit
 sdk_version: 1.40.2
-app_file: app.py
+app_file: anonimizador.py
 pinned: false
 license: mit
 ---
@@ -88,7 +88,7 @@ git clone [url-do-repositorio]
 pip install -r requirements.txt
 
 # Execute a aplicação
-streamlit run app.py
+streamlit run anonimizador.py
 ```
 
 ## 📦 Dependências
