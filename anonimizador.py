@@ -33,7 +33,7 @@ NOME_ARQUIVO_SOBRENOMES = "sobrenomes_comuns.txt"
 NOME_ARQUIVO_TERMOS_COMUNS = "termos_comuns.txt"
 NOME_ARQUIVO_PROMPT_INSTRUCAO = "prompt_instrucao_llm_base.txt" 
 PATH_DA_LOGO = "Logo - AnonimizaJud.png" 
-SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown. /no_think "
+SYSTEM_PROMPT_BASE = "Atue como um assessor jurídico brasileiro especialista em redação jurídica e experiência no tratamento de documentos anonimizados. Seja descritivo e não faça juízo de valor. Responda DIRETAMENTE com a informação solicitada, sem justificativas. Limite-se ao conteúdo do texto fornecido pelo usuário. Não invente, não crie e nem altere informações. Substitua as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown. Retire do texto original qualquer dado que possa identificar as partes do processo (ex: matrícula SIAPE). /no_think "
 
 # Modelos LLM IDs
 MODELO_GEMINI = "gemini-2.5-flash-lite-preview-06-17"  # Atualizado para Gemini 2.5 Flash Lite Preview
