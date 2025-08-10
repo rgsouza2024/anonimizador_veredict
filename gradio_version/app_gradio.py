@@ -3,130 +3,246 @@
 import os
 import logging
 import gradio as gr
-from anonimizador_core import AnonimizadorCore # Apenas o Core é necessário
+import tempfile
+from datetime import datetime
+from anonimizador_core import AnonimizadorCore
 
 # Configurar logging
 logging.basicConfig(
-    level=logging.INFO, # Alterado para INFO para uma saída menos verbosa em produção
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# REMOVIDO: A função processar_documento que existia aqui foi removida
-# pois a lógica agora está 100% no AnonimizadorCore.
+# Variável global para armazenar o último resultado
+ultimo_resultado = ""
 
 def anonimizar_documento_interface(arquivo, modelo_llm, chave_api):
     """
     Função "ponte" que a interface Gradio chama.
     Ela é responsável por instanciar o Core e chamar o método de processamento.
     """
+    global ultimo_resultado
+    
     try:
         if arquivo is None:
             logger.warning("Tentativa de processar sem arquivo.")
-            return "❌ Por favor, selecione um arquivo para anonimizar."
+            return "❌ Por favor, selecione um arquivo para anonimizar.", None, gr.update(visible=False), gr.update(visible=False)
         
         caminho_do_arquivo = arquivo.name
         logger.info(f"Processando arquivo: {caminho_do_arquivo}")
         
-        # Verificar se o arquivo existe (boa prática)
+        # Verificar se o arquivo existe
         if not os.path.exists(caminho_do_arquivo):
             logger.error(f"Arquivo não encontrado no sistema: {caminho_do_arquivo}")
-            return "❌ Arquivo não encontrado no sistema."
+            return "❌ Arquivo não encontrado no sistema.", None, gr.update(visible=False), gr.update(visible=False)
             
         # Inicializar o motor de anonimização
         anonimizador = AnonimizadorCore()
         
-        # Processar o documento usando a lógica centralizada do Core
-        # Note que não precisamos mais saber o tipo do arquivo aqui.
+        # Processar o documento
         logger.info(f"Iniciando processamento com o motor Core...")
         resultado = anonimizador.processar_documento(caminho_do_arquivo, modelo_llm, chave_api)
         
         if resultado.startswith("❌") or resultado.startswith("⚠️"):
             logger.error(f"Erro ou aviso no processamento: {resultado}")
+            return resultado, None, gr.update(visible=False), gr.update(visible=False)
         else:
             logger.info("Documento processado com sucesso.")
+            ultimo_resultado = resultado
             
-        return resultado
+            # Criar arquivo temporário para download
+            arquivo_download = criar_arquivo_download(resultado, caminho_do_arquivo)
+            
+            return resultado, arquivo_download, gr.update(visible=True), gr.update(visible=True)
         
     except Exception as e:
         logger.exception("Erro inesperado durante a anonimização na interface.")
-        return f"❌ Erro crítico durante a anonimização: {str(e)}"
+        return f"❌ Erro crítico durante a anonimização: {str(e)}", None, gr.update(visible=False), gr.update(visible=False)
 
-# Configuração da interface (permanece praticamente a mesma)
-with gr.Blocks(title="AnonimizaJud - Gradio", theme=gr.themes.Soft()) as interface:
-    gr.Markdown("# 🚀 AnonimizaJud - Anonimizador de Documentos")
-    gr.Markdown("### Versão Gradio - Interface Simplificada com Presidio Avançado")
-    gr.Markdown("**🔒 Anonimização automática usando Microsoft Presidio com configuração avançada para português brasileiro**")
-    
+def criar_arquivo_download(texto_anonimizado, arquivo_original):
+    """
+    Cria um arquivo temporário com o texto anonimizado para download.
+    """
+    try:
+        # Extrair nome base do arquivo original
+        nome_base = os.path.splitext(os.path.basename(arquivo_original))[0]
+        
+        # Adicionar timestamp para evitar conflitos
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Criar nome do arquivo anonimizado
+        nome_arquivo = f"{nome_base}_anonimizado_{timestamp}.txt"
+        
+        # Criar arquivo temporário
+        temp_dir = tempfile.gettempdir()
+        caminho_completo = os.path.join(temp_dir, nome_arquivo)
+        
+        # Escrever conteúdo
+        with open(caminho_completo, 'w', encoding='utf-8') as f:
+            # Adicionar cabeçalho informativo
+            f.write("=" * 60 + "\n")
+            f.write("DOCUMENTO ANONIMIZADO - AnonimizaJud\n")
+            f.write(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+            f.write(f"Arquivo original: {os.path.basename(arquivo_original)}\n")
+            f.write("=" * 60 + "\n\n")
+            f.write(texto_anonimizado)
+            
+        logger.info(f"Arquivo para download criado: {caminho_completo}")
+        return caminho_completo
+        
+    except Exception as e:
+        logger.error(f"Erro ao criar arquivo para download: {str(e)}")
+        return None
+
+def limpar_resultados():
+    """
+    Limpa os resultados e reseta a interface.
+    """
+    global ultimo_resultado
+    ultimo_resultado = ""
+    return "", None, gr.update(visible=False), gr.update(visible=False)
+
+def copiar_para_clipboard():
+    """
+    Retorna o texto para ser copiado (Gradio lidará com a cópia).
+    """
+    global ultimo_resultado
+    return ultimo_resultado
+
+# Configuração da interface com tema mais moderno
+with gr.Blocks(
+    title="AnonimizaJud - Gradio",
+    theme=gr.themes.Soft(),
+    css="""
+    .gradio-container {
+        font-family: 'Inter', sans-serif;
+    }
+    .download-section {
+        background-color: #f0f9ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    """
+) as interface:
+    gr.Markdown("<h1 style='text-align: center; margin-bottom: 1rem;'>🚀 AnonimizaJud - Anonimizador de Documentos</h1>")
+    gr.Markdown("")
+        
     with gr.Row():
+        # --- COLUNA DA ESQUERDA ---
         with gr.Column(scale=2):
             gr.Markdown("### 📤 **Upload e Configuração**")
             
             arquivo = gr.File(
                 label="📄 Upload do Documento",
-                file_types=[".pdf", ".txt", ".docx"], # Tipos de arquivo permitidos
-                height=100
+                file_types=[".pdf", ".txt", ".docx"],
+                height=150
             )
             
-            # Opcionais para futuras implementações com LLMs
-            modelo_llm = gr.Dropdown(
-                choices=["GPT-4", "Claude", "Gemini", "Groq", "Ollama"],
-                value="GPT-4",
-                label="🤖 Modelo LLM (opcional, não usado na anonimização Presidio)"
-            )
+            with gr.Accordion("⚙️ Configurações Avançadas (Opcional)", open=False):
+                modelo_llm = gr.Dropdown(
+                    choices=["GPT-4", "Claude", "Gemini", "Groq", "Ollama"],
+                    value="GPT-4",
+                    label="🤖 Modelo LLM (para futuras implementações)"
+                )
+                
+                chave_api = gr.Textbox(
+                    label="🔑 Chave API",
+                    type="password",
+                    placeholder="Digite sua chave API se necessário..."
+                )
             
-            chave_api = gr.Textbox(
-                label="🔑 Chave API (opcional)",
-                type="password",
-                placeholder="Digite sua chave API se o modelo exigir..."
-            )
+            with gr.Row():
+                btn_processar = gr.Button(
+                    "🚀 Anonimizar Documento",
+                    variant="primary",
+                    size="lg"
+                )
+                
+                btn_limpar = gr.Button(
+                    "🗑️ Limpar",
+                    variant="secondary",
+                    size="lg"
+                )
             
-            btn_processar = gr.Button(
-                "🚀 Anonimizar Documento",
-                variant="primary",
-                size="lg"
-            )
+            gr.Markdown("---")
+            
+            # Seção de Download (sem o botão copiar)
+            with gr.Column(visible=False) as download_section:
+                gr.Markdown("### 📥 **Download do Resultado**")
+                
+                arquivo_download = gr.File(
+                    label="Arquivo Anonimizado",
+                    interactive=False
+                )
             
             gr.Markdown("---")
             gr.Markdown("### ℹ️ **Como usar:**")
-            gr.Markdown("1. 📤 Faça upload do seu documento (`.pdf`, `.txt` ou `.docx`).")
-            gr.Markdown("2. 🚀 Clique em 'Anonimizar Documento'.")
-            gr.Markdown("3. 📋 O resultado anonimizado aparecerá ao lado.")
+            gr.Markdown("1. 📤 Faça upload do seu documento (`.pdf`, `.txt` ou `.docx`)")
+            gr.Markdown("2. 🚀 Clique em 'Anonimizar Documento'")
+            gr.Markdown("3. 📋 Visualize o resultado ao lado")
+            gr.Markdown("4. 📥 Baixe o arquivo anonimizado ou copie o texto")
         
-        with gr.Column(scale=3):
-            gr.Markdown("### 📋 **Resultado da Anonimização**")
-            
+        # --- COLUNA DA DIREITA ---
+        with gr.Column(scale=2):
+            # >>> MUDANÇA AQUI <<<
+            # Criamos uma linha para o título e o botão copiar
+            with gr.Row(elem_id="resultado_cabecalho"):
+                gr.Markdown("### 📋 **Resultado da Anonimização**")
+                btn_copiar = gr.Button(
+                    "📋 Copiar",
+                    variant="secondary",
+                    size="sm",
+                    visible=False # Começa invisível
+                )
+
             resultado_textbox = gr.Textbox(
-                label="Resultado",
+                label="Texto Anonimizado",
                 lines=25,
                 max_lines=30,
                 interactive=False,
-                show_label=False
+                show_label=False, # Ocultamos o label original pois já temos um título
+                elem_id="resultado"
             )
             
-            gr.Markdown("---")
-            gr.Markdown("### 🔍 **Sobre a Tecnologia (Microsoft Presidio):**")
-            gr.Markdown("• **Detecção automática** de Nomes, CPFs, RGs, OABs, Endereços, etc.")
-            gr.Markdown("• **Regras personalizadas** para o contexto jurídico e administrativo brasileiro.")
-            gr.Markdown("• **Listas de exceções** para evitar a anonimização de termos comuns e nomes de locais públicos (estados, capitais).")
+            with gr.Accordion("📊 Estatísticas da Anonimização", open=False):
+                stats_output = gr.Markdown(
+                    """
+                    *Processe um documento para ver as estatísticas*
+                    """
+                )
 
-    # Eventos
+    # --- LIGAÇÃO DOS EVENTOS ---
     btn_processar.click(
         fn=anonimizar_documento_interface,
         inputs=[arquivo, modelo_llm, chave_api],
-        outputs=resultado_textbox
+        # Adicionamos a atualização do botão copiar aqui
+        outputs=[resultado_textbox, arquivo_download, download_section, btn_copiar]
+    )
+    
+    btn_limpar.click(
+        fn=limpar_resultados,
+        inputs=[],
+        # Adicionamos a atualização do botão copiar aqui
+        outputs=[resultado_textbox, arquivo_download, download_section, btn_copiar]
+    )
+    
+    btn_copiar.click(
+        fn=copiar_para_clipboard,
+        inputs=[],
+        outputs=[resultado_textbox],
+        # Adiciona um efeito visual de cópia na interface
+        js="""
+        (text_to_copy) => {
+            navigator.clipboard.writeText(text_to_copy);
+            alert("Texto copiado para a área de transferência!");
+            return text_to_copy;
+        }
+        """
     )
 
 # Lançar a aplicação
 if __name__ == "__main__":
     print("🚀 Iniciando a interface do AnonimizaJud...")
-    # ... (bloco try/except para portas permanece o mesmo) ...
-    try:
-        interface.launch(server_name="0.0.0.0", server_port=7860, share=False, debug=True)
-    except OSError:
-        print("⚠️ Porta 7860 ocupada, tentando porta 7861...")
-        try:
-            interface.launch(server_name="0.0.0.0", server_port=7861, share=False, debug=True)
-        except OSError:
-            print("⚠️ Portas 7860 e 7861 ocupadas, usando porta automática...")
-            interface.launch(server_name="0.0.0.0", share=False, debug=True)
+    interface.launch(server_name="0.0.0.0", server_port=7860, show_error=True)
