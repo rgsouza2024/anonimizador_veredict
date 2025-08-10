@@ -2856,20 +2856,32 @@ V. Ex
 49º
 50ª
 50º
-def _carregar_sobrenomes_comuns(self):
-    """Carrega a lista de sobrenomes comuns brasileiros"""
-    caminho = os.path.join(os.path.dirname(__file__), "sobrenomes_comuns.txt")
-    try:
-        with open(caminho, encoding="utf-8") as f:
-            return [linha.strip() for linha in f if linha.strip()]
-    except Exception:
-        return []
-
-def _carregar_termos_comuns(self):
-    """Carrega a lista de termos comuns"""
-    caminho = os.path.join(os.path.dirname(__file__), "termos_comuns.txt")
-    try:
-        with open(caminho, encoding="utf-8") as f:
-            return [linha.strip() for linha in f if linha.strip()]
-    except Exception:
-        return []
+Juízo
+Sentença
+Despacho
+Acórdão
+Liminar
+Recurso
+Recorrente
+Recorrido
+Requerente
+Requerido
+Relator
+Tribunal
+Turma
+Procuradoria
+Advocacia
+Classe
+Petição
+Passo
+AgR
+MM.
+Exmo.
+Douto
+protraem
+julgo
+dias
+julgado
+acostada
+Tribunal Pleno
+Seção Judiciária

@@ -1,57 +1,58 @@
-# ...existing code...
-def processar_documento(self, caminho_arquivo: str, modelo: str, chave_api: str = "") -> str:
-    """Processa um documento para anonimização usando Presidio com configuração avançada"""
-    try:
-        # Detectar tipo de arquivo e extrair texto
-        if caminho_arquivo.lower().endswith('.pdf'):
-            texto = self.extrair_texto_pdf(caminho_arquivo)
-        elif caminho_arquivo.lower().endswith('.txt'):
-            with open(caminho_arquivo, 'r', encoding='utf-8') as f:
-                texto = f.read()
-        elif caminho_arquivo.lower().endswith('.docx'):
-            import docx
-            doc = docx.Document(caminho_arquivo)
-            texto = "\n".join([p.text for p in doc.paragraphs])
-        else:
-            return "❌ Formato de arquivo não suportado."
+# app_gradio.py
 
-        entidades = self.detectar_entidades(texto)
-        texto_anonimizado = self.anonimizar_texto(texto, entidades)
-
-        # Retorne apenas o texto anonimizado completo, sem resumo
-        return texto_anonimizado
-    except Exception as e:
-        return f"❌ Erro ao processar documento: {str(e)}"
-# ...existing code...resultado = gr.Textbox(
-    label="",
-    lines=25,
-    max_lines=50,  # ou remova max_lines para não limitar
-    interactive=False,
-    show_label=False
-# ...existing code...
+import os
+import logging
 import gradio as gr
-from anonimizador_core import AnonimizadorCore
-# ...existing code...# ...existing code in _adicionar_reconhecedores_pt_br...
+from anonimizador_core import AnonimizadorCore # Apenas o Core é necessário
 
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO, # Alterado para INFO para uma saída menos verbosa em produção
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-def anonimizar_documento(arquivo, modelo_llm, chave_api):
-    """Função principal para anonimização"""
+# REMOVIDO: A função processar_documento que existia aqui foi removida
+# pois a lógica agora está 100% no AnonimizadorCore.
+
+def anonimizar_documento_interface(arquivo, modelo_llm, chave_api):
+    """
+    Função "ponte" que a interface Gradio chama.
+    Ela é responsável por instanciar o Core e chamar o método de processamento.
+    """
     try:
         if arquivo is None:
+            logger.warning("Tentativa de processar sem arquivo.")
             return "❌ Por favor, selecione um arquivo para anonimizar."
         
-        # Inicializar anonimizador com configuração avançada
+        caminho_do_arquivo = arquivo.name
+        logger.info(f"Processando arquivo: {caminho_do_arquivo}")
+        
+        # Verificar se o arquivo existe (boa prática)
+        if not os.path.exists(caminho_do_arquivo):
+            logger.error(f"Arquivo não encontrado no sistema: {caminho_do_arquivo}")
+            return "❌ Arquivo não encontrado no sistema."
+            
+        # Inicializar o motor de anonimização
         anonimizador = AnonimizadorCore()
         
-        # Processar documento
-        resultado = anonimizador.processar_documento(arquivo.name, modelo_llm, chave_api)
+        # Processar o documento usando a lógica centralizada do Core
+        # Note que não precisamos mais saber o tipo do arquivo aqui.
+        logger.info(f"Iniciando processamento com o motor Core...")
+        resultado = anonimizador.processar_documento(caminho_do_arquivo, modelo_llm, chave_api)
         
+        if resultado.startswith("❌") or resultado.startswith("⚠️"):
+            logger.error(f"Erro ou aviso no processamento: {resultado}")
+        else:
+            logger.info("Documento processado com sucesso.")
+            
         return resultado
         
     except Exception as e:
-        return f"❌ Erro durante a anonimização: {str(e)}"
+        logger.exception("Erro inesperado durante a anonimização na interface.")
+        return f"❌ Erro crítico durante a anonimização: {str(e)}"
 
-# Configuração da interface
+# Configuração da interface (permanece praticamente a mesma)
 with gr.Blocks(title="AnonimizaJud - Gradio", theme=gr.themes.Soft()) as interface:
     gr.Markdown("# 🚀 AnonimizaJud - Anonimizador de Documentos")
     gr.Markdown("### Versão Gradio - Interface Simplificada com Presidio Avançado")
@@ -63,20 +64,21 @@ with gr.Blocks(title="AnonimizaJud - Gradio", theme=gr.themes.Soft()) as interfa
             
             arquivo = gr.File(
                 label="📄 Upload do Documento",
-                file_types=[".pdf", ".txt", ".docx"],
+                file_types=[".pdf", ".txt", ".docx"], # Tipos de arquivo permitidos
                 height=100
             )
             
+            # Opcionais para futuras implementações com LLMs
             modelo_llm = gr.Dropdown(
                 choices=["GPT-4", "Claude", "Gemini", "Groq", "Ollama"],
                 value="GPT-4",
-                label="🤖 Modelo LLM (opcional para Presidio)"
+                label="🤖 Modelo LLM (opcional, não usado na anonimização Presidio)"
             )
             
             chave_api = gr.Textbox(
-                label="🔑 Chave API (opcional para Presidio)",
+                label="🔑 Chave API (opcional)",
                 type="password",
-                placeholder="Digite sua chave API..."
+                placeholder="Digite sua chave API se o modelo exigir..."
             )
             
             btn_processar = gr.Button(
@@ -87,17 +89,15 @@ with gr.Blocks(title="AnonimizaJud - Gradio", theme=gr.themes.Soft()) as interfa
             
             gr.Markdown("---")
             gr.Markdown("### ℹ️ **Como usar:**")
-            gr.Markdown("1. 📤 Faça upload do documento que deseja anonimizar")
-            gr.Markdown("2. 🤖 Selecione o modelo LLM (opcional)")
-            gr.Markdown("3. 🔑 Digite sua chave API (opcional)")
-            gr.Markdown("4. 🚀 Clique em 'Anonimizar Documento'")
-            gr.Markdown("5. 🔒 O resultado será exibido ao lado")
+            gr.Markdown("1. 📤 Faça upload do seu documento (`.pdf`, `.txt` ou `.docx`).")
+            gr.Markdown("2. 🚀 Clique em 'Anonimizar Documento'.")
+            gr.Markdown("3. 📋 O resultado anonimizado aparecerá ao lado.")
         
         with gr.Column(scale=3):
             gr.Markdown("### 📋 **Resultado da Anonimização**")
             
-            resultado = gr.Textbox(
-                label="",
+            resultado_textbox = gr.Textbox(
+                label="Resultado",
                 lines=25,
                 max_lines=30,
                 interactive=False,
@@ -105,48 +105,28 @@ with gr.Blocks(title="AnonimizaJud - Gradio", theme=gr.themes.Soft()) as interfa
             )
             
             gr.Markdown("---")
-            gr.Markdown("### 🔍 **Sobre o Microsoft Presidio Avançado:**")
-            gr.Markdown("• **Detecção automática** de informações pessoais (PII)")
-            gr.Markdown("• **Anonimização inteligente** com marcadores seguros")
-            gr.Markdown("• **Suporte completo ao português** brasileiro")
-            gr.Markdown("• **Reconhecedores personalizados** para documentos brasileiros")
-            gr.Markdown("• **Listas de termos específicos** (estados, cabeçalhos legais, sobrenomes)")
-            gr.Markdown("• **Operadores de anonimização** inteligentes")
-            gr.Markdown("• **Entidades detectadas:** Nomes, telefones, emails, CPFs, OAB, CNH, SIAPE, etc.")
-    
+            gr.Markdown("### 🔍 **Sobre a Tecnologia (Microsoft Presidio):**")
+            gr.Markdown("• **Detecção automática** de Nomes, CPFs, RGs, OABs, Endereços, etc.")
+            gr.Markdown("• **Regras personalizadas** para o contexto jurídico e administrativo brasileiro.")
+            gr.Markdown("• **Listas de exceções** para evitar a anonimização de termos comuns e nomes de locais públicos (estados, capitais).")
+
     # Eventos
     btn_processar.click(
-        fn=anonimizar_documento,
+        fn=anonimizar_documento_interface,
         inputs=[arquivo, modelo_llm, chave_api],
-        outputs=resultado
+        outputs=resultado_textbox
     )
 
 # Lançar a aplicação
 if __name__ == "__main__":
+    print("🚀 Iniciando a interface do AnonimizaJud...")
+    # ... (bloco try/except para portas permanece o mesmo) ...
     try:
-        # Tentar porta padrão primeiro
-        interface.launch(
-            server_name="0.0.0.0",
-            server_port=7860,
-            share=False,
-            debug=True
-        )
+        interface.launch(server_name="0.0.0.0", server_port=7860, share=False, debug=True)
     except OSError:
-        # Se a porta 7860 estiver ocupada, tentar porta alternativa
         print("⚠️ Porta 7860 ocupada, tentando porta 7861...")
         try:
-            interface.launch(
-                server_name="0.0.0.0",
-                server_port=7861,
-                share=False,
-                debug=True
-            )
+            interface.launch(server_name="0.0.0.0", server_port=7861, share=False, debug=True)
         except OSError:
-            # Se ambas estiverem ocupadas, usar porta automática
             print("⚠️ Portas 7860 e 7861 ocupadas, usando porta automática...")
-            interface.launch(
-                server_name="0.0.0.0",
-                server_port=0,  # Porta automática
-                share=False,
-                debug=True
-            )
+            interface.launch(server_name="0.0.0.0", share=False, debug=True)
