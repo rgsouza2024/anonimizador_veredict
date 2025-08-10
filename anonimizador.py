@@ -402,6 +402,68 @@ def carregar_analyzer_engine(termos_safe_location,
             )
             analyzer.registry.add_recognizer(surnames_recognizer)
         
+        # --- Reconhecedores Específicos para Documentos de Identificação ---
+        
+        # Reconhecedor para CNH (Carteira Nacional de Habilitação)
+        cnh_patterns = [
+            # CNH com formatação: CNH 12345678901 ou CNH nº 12345678901
+            Pattern(name="cnh_formatado", regex=r"\bCNH\s*(?:nº|n\.)?\s*\d{11}\b", score=0.98),
+            # CNH sem formatação: apenas os 11 dígitos (mais específico para evitar falsos positivos)
+            Pattern(name="cnh_apenas_numeros", regex=r"\b(?<![\w])\d{11}(?![\w])\b", score=0.85)
+        ]
+        cnh_recognizer = PatternRecognizer(
+            supported_entity="CNH",
+            name="CNHRecognizer",
+            patterns=cnh_patterns,
+            supported_language="pt"
+        )
+        analyzer.registry.add_recognizer(cnh_recognizer)
+        
+        # Reconhecedor para SIAPE (Sistema Integrado de Administração de Recursos Humanos)
+        siape_patterns = [
+            # SIAPE com formatação: SIAPE 1234567 ou SIAPE nº 1234567
+            Pattern(name="siape_formatado", regex=r"\bSIAPE\s*(?:nº|n\.)?\s*\d{7}\b", score=0.98),
+            # SIAPE sem formatação: apenas os 7 dígitos (mais específico)
+            Pattern(name="siape_apenas_numeros", regex=r"\b(?<![\w])\d{7}(?![\w])\b", score=0.85)
+        ]
+        siape_recognizer = PatternRecognizer(
+            supported_entity="SIAPE",
+            name="SIAPERecognizer",
+            patterns=siape_patterns,
+            supported_language="pt"
+        )
+        analyzer.registry.add_recognizer(siape_recognizer)
+        
+        # Reconhecedor para CI (Cédula de Identidade)
+        ci_patterns = [
+            # CI com formatação: CI 12345678-9 ou CI nº 12345678-9
+            Pattern(name="ci_formatado", regex=r"\bCI\s*(?:nº|n\.)?\s*[\d.]{7,11}-?\d\b", score=0.98),
+            # CI sem formatação: formato padrão brasileiro
+            Pattern(name="ci_padrao", regex=r"\b\d{1,2}\.?\d{3}\.?\d{3}-?\d\b", score=0.90)
+        ]
+        ci_recognizer = PatternRecognizer(
+            supported_entity="CI",
+            name="CIRecognizer",
+            patterns=ci_patterns,
+            supported_language="pt"
+        )
+        analyzer.registry.add_recognizer(ci_recognizer)
+        
+        # Reconhecedor para CIN (Cédula de Identidade Nacional)
+        cin_patterns = [
+            # CIN com formatação: CIN 12345678-9 ou CIN nº 12345678-9
+            Pattern(name="cin_formatado", regex=r"\bCIN\s*(?:nº|n\.)?\s*[\d.]{7,11}-?\d\b", score=0.98),
+            # CIN sem formatação: formato padrão brasileiro
+            Pattern(name="cin_padrao", regex=r"\b\d{1,2}\.?\d{3}\.?\d{3}-?\d\b", score=0.90)
+        ]
+        cin_recognizer = PatternRecognizer(
+            supported_entity="CIN",
+            name="CINRecognizer",
+            patterns=cin_patterns,
+            supported_language="pt"
+        )
+        analyzer.registry.add_recognizer(cin_recognizer)
+        
         # --- Reconhecedor para IDs de Documento/Processo/Benefício (REFINADO) ---
         id_documento_patterns = [
             # Para NB XXXXXXXXX-X ou XXX.XXX.XXX-X
@@ -459,7 +521,13 @@ def obter_operadores_anonimizacao():
         "ESTADO_CIVIL": OperatorConfig("keep"),
         "ORGANIZACAO_CONHECIDA": OperatorConfig("keep"),
         "ID_DOCUMENTO": OperatorConfig("keep"), 
-        "LEGAL_OR_COMMON_TERM": OperatorConfig("keep")
+                        "LEGAL_OR_COMMON_TERM": OperatorConfig("keep"),
+                # Operadores para documentos - substituindo por "***"
+                "CNH": OperatorConfig("replace", {"new_value": "***"}),
+                "SIAPE": OperatorConfig("replace", {"new_value": "***"}),
+                "CI": OperatorConfig("replace", {"new_value": "***"}),
+                "CIN": OperatorConfig("replace", {"new_value": "***"}),
+                "RG": OperatorConfig("replace", {"new_value": "***"})
     }
 
 analyzer_engine = carregar_analyzer_engine(
@@ -1154,7 +1222,7 @@ with tab_pdf:
 
                 if texto_para_anonimizar and texto_para_anonimizar.strip():
                     with st.spinner(f"Anonimizando '{st.session_state.get('nome_arquivo_carregado'+VERSION_SUFFIX)}'..."):
-                        entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "ID_DOCUMENTO"]
+                        entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "ID_DOCUMENTO", "CNH", "SIAPE", "CI", "CIN"]
                         entidades_para_analise = list(set(entidades_para_analise)); 
                         if "DEFAULT" in entidades_para_analise: entidades_para_analise.remove("DEFAULT")
                         resultados_analise_pdf = analyzer_engine.analyze(text=texto_para_anonimizar, language='pt', entities=entidades_para_analise, return_decision_process=False)
@@ -1234,7 +1302,7 @@ with tab_texto:
         elif analyzer_engine and anonymizer_engine:
             try:
                 with st.spinner("Analisando e anonimizando o texto da área..."):
-                    entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA"]
+                    entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "CNH", "SIAPE", "CI", "CIN"]
                     entidades_para_analise = list(set(entidades_para_analise))
                     if "DEFAULT" in entidades_para_analise: entidades_para_analise.remove("DEFAULT")
                     
