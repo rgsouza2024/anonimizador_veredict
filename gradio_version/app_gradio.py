@@ -1,5 +1,38 @@
+# ...existing code...
+def processar_documento(self, caminho_arquivo: str, modelo: str, chave_api: str = "") -> str:
+    """Processa um documento para anonimização usando Presidio com configuração avançada"""
+    try:
+        # Detectar tipo de arquivo e extrair texto
+        if caminho_arquivo.lower().endswith('.pdf'):
+            texto = self.extrair_texto_pdf(caminho_arquivo)
+        elif caminho_arquivo.lower().endswith('.txt'):
+            with open(caminho_arquivo, 'r', encoding='utf-8') as f:
+                texto = f.read()
+        elif caminho_arquivo.lower().endswith('.docx'):
+            import docx
+            doc = docx.Document(caminho_arquivo)
+            texto = "\n".join([p.text for p in doc.paragraphs])
+        else:
+            return "❌ Formato de arquivo não suportado."
+
+        entidades = self.detectar_entidades(texto)
+        texto_anonimizado = self.anonimizar_texto(texto, entidades)
+
+        # Retorne apenas o texto anonimizado completo, sem resumo
+        return texto_anonimizado
+    except Exception as e:
+        return f"❌ Erro ao processar documento: {str(e)}"
+# ...existing code...resultado = gr.Textbox(
+    label="",
+    lines=25,
+    max_lines=50,  # ou remova max_lines para não limitar
+    interactive=False,
+    show_label=False
+# ...existing code...
 import gradio as gr
 from anonimizador_core import AnonimizadorCore
+# ...existing code...# ...existing code in _adicionar_reconhecedores_pt_br...
+
 
 def anonimizar_documento(arquivo, modelo_llm, chave_api):
     """Função principal para anonimização"""

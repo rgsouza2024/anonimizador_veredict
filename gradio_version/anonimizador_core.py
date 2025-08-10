@@ -101,30 +101,20 @@ class AnonimizadorCore:
     
     def _carregar_sobrenomes_comuns(self):
         """Carrega a lista de sobrenomes comuns brasileiros"""
+        caminho = os.path.join(os.path.dirname(__file__), "sobrenomes_comuns.txt")
         try:
-            caminho_sobrenomes = os.path.join(os.path.dirname(__file__), "..", "sobrenomes_comuns.txt")
-            if os.path.exists(caminho_sobrenomes):
-                with open(caminho_sobrenomes, "r", encoding="utf-8") as f:
-                    return [linha.strip() for linha in f if linha.strip()]
-            else:
-                print("⚠️ Arquivo sobrenomes_comuns.txt não encontrado")
-                return []
-        except Exception as e:
-            print(f"⚠️ Erro ao carregar sobrenomes: {e}")
+            with open(caminho, encoding="utf-8") as f:
+                return [linha.strip() for linha in f if linha.strip()]
+        except Exception:
             return []
-    
+
     def _carregar_termos_comuns(self):
         """Carrega a lista de termos comuns"""
+        caminho = os.path.join(os.path.dirname(__file__), "termos_comuns.txt")
         try:
-            caminho_termos = os.path.join(os.path.dirname(__file__), "..", "termos_comuns.txt")
-            if os.path.exists(caminho_termos):
-                with open(caminho_termos, "r", encoding="utf-8") as f:
-                    return [linha.strip() for linha in f if linha.strip()]
-            else:
-                print("⚠️ Arquivo termos_comuns.txt não encontrado")
-                return []
-        except Exception as e:
-            print(f"⚠️ Erro ao carregar termos comuns: {e}")
+            with open(caminho, encoding="utf-8") as f:
+                return [linha.strip() for linha in f if linha.strip()]
+        except Exception:
             return []
     
     def _adicionar_reconhecedores_pt_br(self):
@@ -286,6 +276,17 @@ class AnonimizadorCore:
             )
             self.analyzer.registry.add_recognizer(id_documento_recognizer)
             
+            # Reconhecedor para Termos Comuns (whitelist)
+            if self.termos_comuns:
+                termos_comuns_recognizer = PatternRecognizer(
+                    supported_entity="LEGAL_OR_COMMON_TERM",
+                    name="LegalOrCommonTermRecognizer",
+                    deny_list=self.termos_comuns,
+                    supported_language="pt",
+                    deny_list_score=0.99
+                )
+                self.analyzer.registry.add_recognizer(termos_comuns_recognizer)
+            
             print("✅ Reconhecedores personalizados avançados para português brasileiro adicionados!")
             
         except Exception as e:
@@ -414,7 +415,7 @@ class AnonimizadorCore:
 {texto_original[:500]}{'...' if len(texto_original) > 500 else ''}
 
 🔒 TEXTO ANONIMIZADO (primeiras 500 caracteres):
-{texto_anonimizado[:500]}{'...' if len(texto_anonimizado) > 500 else ''}
+{texto_anonimizado}
 
 💡 Documento anonimizado usando Microsoft Presidio com configuração avançada para português brasileiro.
    Todas as informações pessoais foram substituídas por marcadores seguros.
