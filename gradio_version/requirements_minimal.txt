@@ -1,0 +1,17 @@
+# Dependências mínimas para teste
+gradio>=4.0.0
+
+# Microsoft Presidio - Core
+presidio-analyzer>=2.2.0
+presidio-anonymizer>=2.2.0
+
+# Processamento de linguagem natural
+spacy>=3.5.0
+presidio-analyzer[spacy]>=2.2.0
+
+# Processamento de documentos básico
+PyPDF2>=3.0.0
+
+# Utilitários básicos
+requests>=2.25.0
+python-dotenv>=0.19.0
