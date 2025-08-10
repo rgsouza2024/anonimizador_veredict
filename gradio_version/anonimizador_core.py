@@ -205,23 +205,10 @@ class AnonimizadorCore:
                 )
                 self.analyzer.registry.add_recognizer(surnames_recognizer)
             
-            # Reconhecedor para CNH (Carteira Nacional de Habilitação)
-            cnh_patterns = [
-                Pattern(name="cnh_formatado", regex=r"\bCNH\s*(?:nº|n\.)?\s*\d{11}\b", score=0.98),
-                Pattern(name="cnh_apenas_numeros", regex=r"\b(?<![\w])\d{11}(?![\w])\b", score=0.85)
-            ]
-            cnh_recognizer = PatternRecognizer(
-                supported_entity="CNH",
-                name="CNHRecognizer",
-                patterns=cnh_patterns,
-                supported_language="pt"
-            )
-            self.analyzer.registry.add_recognizer(cnh_recognizer)
-            
             # Reconhecedor para SIAPE (Sistema Integrado de Administração de Recursos Humanos)
             siape_patterns = [
-                Pattern(name="siape_formatado", regex=r"\bSIAPE\s*(?:nº|n\.)?\s*\d{7}\b", score=0.98),
-                Pattern(name="siape_apenas_numeros", regex=r"\b(?<![\w])\d{7}(?![\w])\b", score=0.85)
+                Pattern(name="siape_formatado", regex=r"\bSIAPE\s*(?:n[ºo]\s*)?\d{5,10}\b", score=0.98),
+                Pattern(name="siape_apenas_numeros", regex=r"\b\d{5,10}\b", score=0.85)
             ]
             siape_recognizer = PatternRecognizer(
                 supported_entity="SIAPE",
@@ -230,11 +217,37 @@ class AnonimizadorCore:
                 supported_language="pt"
             )
             self.analyzer.registry.add_recognizer(siape_recognizer)
-            
-            # Reconhecedor para CI (Cédula de Identidade)
+
+            # Reconhecedor para RG
+            rg_patterns = [
+                Pattern(name="rg_formatado", regex=r"\bRG\s*(?:n[ºo]\s*)?\d{5,12}(-\d)?\b", score=0.98),
+                Pattern(name="rg_apenas_numeros", regex=r"\b\d{5,12}(-\d)?\b", score=0.85)
+            ]
+            rg_recognizer = PatternRecognizer(
+                supported_entity="RG",
+                name="RGRecognizer",
+                patterns=rg_patterns,
+                supported_language="pt"
+            )
+            self.analyzer.registry.add_recognizer(rg_recognizer)
+
+            # Reconhecedor para CNH
+            cnh_patterns = [
+                Pattern(name="cnh_formatado", regex=r"\bCNH\s*(?:n[ºo]\s*)?\d{9,12}\b", score=0.98),
+                Pattern(name="cnh_apenas_numeros", regex=r"\b\d{9,12}\b", score=0.85)
+            ]
+            cnh_recognizer = PatternRecognizer(
+                supported_entity="CNH",
+                name="CNHRecognizer",
+                patterns=cnh_patterns,
+                supported_language="pt"
+            )
+            self.analyzer.registry.add_recognizer(cnh_recognizer)
+
+            # Reconhecedor para CI
             ci_patterns = [
-                Pattern(name="ci_formatado", regex=r"\bCI\s*(?:nº|n\.)?\s*[\d.]{7,11}-?\d\b", score=0.98),
-                Pattern(name="ci_padrao", regex=r"\b\d{1,2}\.?\d{3}\.?\d{3}-?\d\b", score=0.90)
+                Pattern(name="ci_formatado", regex=r"\bCI\s*(?:n[ºo]\s*)?\d{5,12}\b", score=0.98),
+                Pattern(name="ci_apenas_numeros", regex=r"\b\d{5,12}\b", score=0.85)
             ]
             ci_recognizer = PatternRecognizer(
                 supported_entity="CI",
@@ -243,19 +256,6 @@ class AnonimizadorCore:
                 supported_language="pt"
             )
             self.analyzer.registry.add_recognizer(ci_recognizer)
-            
-            # Reconhecedor para CIN (Cédula de Identidade Nacional)
-            cin_patterns = [
-                Pattern(name="cin_formatado", regex=r"\bCIN\s*(?:nº|n\.)?\s*[\d.]{7,11}-?\d\b", score=0.98),
-                Pattern(name="cin_padrao", regex=r"\b\d{1,2}\.?\d{3}\.?\d{3}-?\d\b", score=0.90)
-            ]
-            cin_recognizer = PatternRecognizer(
-                supported_entity="CIN",
-                name="CINRecognizer",
-                patterns=cin_patterns,
-                supported_language="pt"
-            )
-            self.analyzer.registry.add_recognizer(cin_recognizer)
             
             # Reconhecedor para IDs de Documento/Processo/Benefício (REFINADO)
             id_documento_patterns = [
@@ -320,29 +320,26 @@ class AnonimizadorCore:
             raise Exception(f"Erro ao detectar entidades: {str(e)}")
     
     def obter_operadores_anonimizacao(self):
-        """Retorna os operadores de anonimização completos"""
         return {
             "DEFAULT": OperatorConfig("keep"),
             "PERSON": OperatorConfig("replace", {"new_value": "<NOME>"}),
             "LOCATION": OperatorConfig("replace", {"new_value": "<ENDERECO>"}),
             "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "<EMAIL>"}),
             "PHONE_NUMBER": OperatorConfig("mask", {"type": "mask", "masking_char": "*", "chars_to_mask": 4, "from_end": True}),
-            "CPF": OperatorConfig("replace", {"new_value": "<CPF>"}),
+            "CPF": OperatorConfig("replace", {"new_value": "***"}),
             "DATE_TIME": OperatorConfig("keep"), 
             "OAB_NUMBER": OperatorConfig("replace", {"new_value": "<OAB>"}),
-            "CEP_NUMBER": OperatorConfig("replace", {"new_value": "<CEP>"}),
+            "CEP_NUMBER": OperatorConfig("replace", {"new_value": "***"}),
             "ESTADO_CIVIL": OperatorConfig("keep"),
             "ORGANIZACAO_CONHECIDA": OperatorConfig("keep"),
             "ID_DOCUMENTO": OperatorConfig("keep"), 
             "LEGAL_OR_COMMON_TERM": OperatorConfig("keep"),
             "SAFE_LOCATION": OperatorConfig("keep"),
             "LEGAL_HEADER": OperatorConfig("keep"),
-            # Operadores para documentos - substituindo por "***"
             "CNH": OperatorConfig("replace", {"new_value": "***"}),
             "SIAPE": OperatorConfig("replace", {"new_value": "***"}),
-            "CI": OperatorConfig("replace", {"new_value": "***"}),
-            "CIN": OperatorConfig("replace", {"new_value": "***"}),
-            "RG": OperatorConfig("replace", {"new_value": "***"})
+            "RG": OperatorConfig("replace", {"new_value": "***"}),
+            "CI": OperatorConfig("replace", {"new_value": "***"})
         }
     
     def anonimizar_texto(self, texto: str, entidades_detectadas: list = None) -> str:
@@ -411,10 +408,10 @@ class AnonimizadorCore:
             resultado += f"""
 🔄 Substituições realizadas: {len(entidades_detectadas)}
 
-📝 TEXTO ORIGINAL (primeiras 500 caracteres):
-{texto_original[:500]}{'...' if len(texto_original) > 500 else ''}
+📝 TEXTO ORIGINAL:
+{texto_original}
 
-🔒 TEXTO ANONIMIZADO (primeiras 500 caracteres):
+🔒 TEXTO ANONIMIZADO:
 {texto_anonimizado}
 
 💡 Documento anonimizado usando Microsoft Presidio com configuração avançada para português brasileiro.
@@ -436,3 +433,14 @@ class AnonimizadorCore:
         """Valida se o arquivo é suportado"""
         extensoes_validas = ['.pdf', '.txt', '.docx']
         return any(caminho.lower().endswith(ext) for ext in extensoes_validas)
+
+# 🔒 AnonimizaJud - Gradio
+
+Sistema inteligente de anonimização de documentos jurídicos brasileiros utilizando IA (Microsoft Presidio) para proteger dados sensíveis.
+
+## Principais Funcionalidades
+
+- **Anonimização automática** de nomes, endereços, CPFs, CEPs, SIAPE, RG, CNH, CI, e e-mails.
+- **Substituição padronizada:**  
+  - CPFs, CEPs, SIAPE, RG, CNH e CI são sempre substituídos por `***`.
+  - Nomes por `<NOME>`, endereços por `<ENDERECO>`, e-mails por `<EMAIL>`.
