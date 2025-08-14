@@ -1,17 +1,15 @@
-# Dependências mínimas para teste
-gradio>=4.0.0
+# Dependências mínimas para rodar o anonimizador com UI básica
+gradio>=4.36.0
 
-# Microsoft Presidio - Core
-presidio-analyzer>=2.2.0
-presidio-anonymizer>=2.2.0
-
-# Processamento de linguagem natural
-spacy>=3.5.0
+# Presidio + NLP
 presidio-analyzer[spacy]>=2.2.0
+presidio-anonymizer>=2.2.0
+spacy>=3.7,<3.8
+pt-core-news-lg @ https://github.com/explosion/spacy-models/releases/download/pt_core_news_lg-3.7.0/pt_core_news_lg-3.7.0-py3-none-any.whl
 
-# Processamento de documentos básico
+# Documentos
 PyPDF2>=3.0.0
 
-# Utilitários básicos
-requests>=2.25.0
-python-dotenv>=0.19.0
+# Utilitários essenciais
+requests>=2.31.0
+python-dotenv>=1.0.0

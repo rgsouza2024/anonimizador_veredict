@@ -40,10 +40,7 @@ MODELO_GEMINI = "gemini-2.5-flash-lite-preview-06-17"  # Atualizado para Gemini 
 MODELO_OPENAI = "gpt-4o-mini"
 MODELO_CLAUDE = "claude-3-5-haiku-latest"
 MODELO_GROQ_LLAMA3_70B = "llama-3.3-70b-versatile"
-MODELO_OLLAMA_GEMMA = "gemma3:12b" 
-MODELO_OLLAMA_DEEPSEEK = "deepseek-r1:14b"
 MODELO_OLLAMA_NEMOTRON = "nemotron-mini"
-MODELO_OLLAMA_QWEN = "qwen3:14b"
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 # --- Configuração da Página ---
@@ -744,7 +741,7 @@ def reescrever_texto_com_groq(texto_anonimizado: str, system_prompt: str, user_p
             st.error(f"Erro com Groq ({MODELO_GROQ_LLAMA3_70B}): {type(e).__name__} - {e}")
         return None
 
-def reescrever_texto_com_ollama(texto_anonimizado: str, system_prompt: str, user_prompt_instruction: str, model_name: str = MODELO_OLLAMA_GEMMA) -> str | None:
+def reescrever_texto_com_ollama(texto_anonimizado: str, system_prompt: str, user_prompt_instruction: str, model_name: str = MODELO_OLLAMA_NEMOTRON) -> str | None:
     """Chama a API do Ollama local para reescrever/resumir o texto."""
     if not texto_anonimizado or not texto_anonimizado.strip():
         st.warning(f"Ollama ({model_name}): Não há texto anonimizado para reescrever.")
@@ -816,33 +813,11 @@ LLM_CONFIGS = {
         "rewrite_function": reescrever_texto_com_groq,
         "token_estimator_model": "openai" 
     },    
-    f"Ollama Local GEMMA ({MODELO_OLLAMA_GEMMA})": {
-        "id": "ollama_gemma", # ID interno ajustado para ser único
-        "model_api_name": MODELO_OLLAMA_GEMMA,
-        "key_loader_function": lambda: True, 
-        "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_GEMMA),
-        "token_estimator_model": "ollama"
-    },        
-    f"Ollama Local DEEPSEEK ({MODELO_OLLAMA_DEEPSEEK})": { 
-        "id": "ollama_deepseek", 
-        "model_api_name": MODELO_OLLAMA_DEEPSEEK, 
-        "key_loader_function": lambda: True, 
-        "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_DEEPSEEK), 
-        "think": False,
-        "token_estimator_model": "ollama" 
-    },
     f"Ollama Local NVIDIA NEMOTRON ({MODELO_OLLAMA_NEMOTRON})": {
         "id": "ollama_nemotron", 
         "model_api_name": MODELO_OLLAMA_NEMOTRON, 
         "key_loader_function": lambda: True, 
         "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_NEMOTRON),
-        "token_estimator_model": "ollama" 
-    },
-    f"Ollama Local QWEN ({MODELO_OLLAMA_QWEN})": { # <<< NOVA ENTRADA PARA QWEN
-        "id": "ollama_qwen", # ID interno único
-        "model_api_name": MODELO_OLLAMA_QWEN, 
-        "key_loader_function": lambda: True, 
-        "rewrite_function": lambda txt, sys_p, usr_p, api_key_placeholder: reescrever_texto_com_ollama(txt, sys_p, usr_p, MODELO_OLLAMA_QWEN),
         "token_estimator_model": "ollama" 
     }
 }
