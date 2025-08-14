@@ -63,38 +63,75 @@ class AnonimizadorCore:
     def _carregar_listas_brasileiras(self):
         self.termos_comuns = self._carregar_lista_de_arquivo("termos_comuns.txt")
         self.termos_legais = self._carregar_lista_de_arquivo("termos_legais.txt")
+        # Opcional: Carregar sobrenomes se for usar em lógicas futuras
+        self.sobrenomes_comuns = self._carregar_lista_de_arquivo("sobrenomes_comuns.txt")
 
     def _adicionar_reconhecedores_pt_br(self):
         """Adiciona reconhecedores personalizados (Regex) para o contexto brasileiro."""
         try:
-            # Criar instâncias dos reconhecedores baseados em padrões
-            cpf_recognizer = PatternRecognizer(supported_entity="CPF", name="CpfRecognizer",
-                                               patterns=[Pattern(name="CpfPattern", regex=r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b', score=1.0)])
-            
-            rg_recognizer = PatternRecognizer(supported_entity="RG_NUMBER", name="RgRecognizer",
-                                              patterns=[Pattern(name="RgPattern", regex=r'\b(?:RG|R\.G\.|R G)\s*n?[°º]?\s*:?\s*(\d{1,2}[\.]?\d{3}[\.]?\d{3}-?[\dX])\b', score=1.0)])
+            # --- NOVOS RECONHECEDORES E MELHORIAS ---
 
+            # 1. Reconhecedor de ENDEREÇO (NOVO)
+            # Foca em padrões comuns de endereços postais brasileiros.
+            address_pattern = Pattern(
+                name="AddressPattern",
+                regex=r'\b(?:Rua|Av\\.?|Avenida|Praça|Travessa|Largo|Rodovia|Estrada|Alameda)[\\s,.:-]*[\\w\\sÁ-úºª-]{5,80}(?:nº|numero|n\\.|,)\\s*\\d+[\\w\\s,.-]*',
+                score=0.85  # Score alto, mas não 1.0, para permitir que o spaCy ajude
+            )
+            address_recognizer = PatternRecognizer(
+                supported_entity="ENDERECO_POSTAL", 
+                name="AddressRecognizer",
+                patterns=[address_pattern]
+            )
+
+            # 2. Reconhecedor de RG (MELHORADO)
+            # Mantém o original, de alta confiança, que busca "RG ..."
+            rg_recognizer_prefixo = PatternRecognizer(
+                supported_entity="RG_NUMBER", name="RgRecognizerComPrefixo",
+                patterns=[Pattern(name="RgPatternComPrefixo", regex=r'\b(?:RG|R\\.G\\.|R G)\\s*n?[°º]?\\s*:?\\s*(\\d{1,2}[\\.]?\\d{3}[\\.]?\\d{3}-?[\\dX])\\b', score=1.0)]
+            )
+            # Adiciona um novo, de confiança média, que busca apenas o padrão numérico
+            rg_recognizer_isolado = PatternRecognizer(
+                supported_entity="RG_NUMBER", name="RgRecognizerIsolado",
+                patterns=[Pattern(name="RgPatternIsolado", regex=r'\b\\d{1,2}\\.\\d{3}\\.\\d{3}-[\\dX]\\b', score=0.5)]
+            )
+
+            # 3. Reconhecedor de CPF (EXISTENTE - SEM ALTERAÇÃO)
+            cpf_recognizer = PatternRecognizer(
+                supported_entity="CPF", name="CpfRecognizer",
+                patterns=[Pattern(name="CpfPattern", regex=r'\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b', score=1.0)]
+            )
+
+            # 4. Outros reconhecedores (OAB, CRM, etc. - SEM ALTERAÇÃO)
             oab_recognizer = PatternRecognizer(supported_entity="OAB_NUMBER", name="OabRecognizer",
-                                               patterns=[Pattern(name="OabPattern", regex=r'\bOAB[/\s]*[A-Z]{2}\s*\d{1,6}(?:\/\d{1,2})?\b', score=1.0)])
-
+                                               patterns=[Pattern(name="OabPattern", regex=r'\bOAB[/\\s]*[A-Z]{2}\\s*\\d{1,6}(?:/\\d{1,2})?\\b', score=1.0)])
             crm_recognizer = PatternRecognizer(supported_entity="CRM_NUMBER", name="CrmRecognizer",
-                                               patterns=[Pattern(name="CrmPattern", regex=r'\bCRM[/\s]*[A-Z]{2}\s*\d{1,6}\b', score=1.0)])
-
+                                               patterns=[Pattern(name="CrmPattern", regex=r'\bCRM[/\\s]*[A-Z]{2}\\s*\\d{1,6}\\b', score=1.0)])
             cress_recognizer = PatternRecognizer(supported_entity="CRESS_NUMBER", name="CressRecognizer",
-                                                 patterns=[Pattern(name="CressPattern", regex=r'\bCRESS[/\s]*[A-Z]{2}\s*\d{1,6}\b', score=1.0)])
-            
-            # Adicionar os reconhecedores ao registro do analyzer
+                                                 patterns=[Pattern(name="CressPattern", regex=r'\bCRESS[/\\s]*[A-Z]{2}\\s*\\d{1,6}\\b', score=1.0)])
+
+            # Adicionar todos os reconhecedores ao registro do analyzer
+            self.analyzer.registry.add_recognizer(address_recognizer)
+            self.analyzer.registry.add_recognizer(rg_recognizer_prefixo)
+            self.analyzer.registry.add_recognizer(rg_recognizer_isolado)
             self.analyzer.registry.add_recognizer(cpf_recognizer)
-            self.analyzer.registry.add_recognizer(rg_recognizer)
             self.analyzer.registry.add_recognizer(oab_recognizer)
             self.analyzer.registry.add_recognizer(crm_recognizer)
             self.analyzer.registry.add_recognizer(cress_recognizer)
 
-            # Adicionar listas de negação para evitar falsos positivos
-            deny_recognizer_legal = PatternRecognizer(supported_entity="LEGAL_TERM", name="LegalTermRecognizer", deny_list=self.termos_legais)
-            self.analyzer.registry.add_recognizer(deny_recognizer_legal)
+            # --- LISTAS DE NEGAÇÃO (DENY LISTS) ---
+            # Utilizar as listas carregadas para evitar falsos positivos.
             
-            print("✅ Reconhecedores personalizados para CPF, RG, OAB, etc., foram adicionados.")
+            # Nega termos legais (evita que "Tribunal de Justiça" seja visto como NOME)
+            deny_legal = PatternRecognizer(supported_entity="LEGAL_TERM", name="LegalTermDenyList", deny_list=self.termos_legais)
+            
+            # Nega termos comuns (evita que "Requerente", "Apelado" etc. sejam vistos como NOME)
+            deny_comuns = PatternRecognizer(supported_entity="COMMON_TERM", name="CommonTermDenyList", deny_list=self.termos_comuns)
+            
+            self.analyzer.registry.add_recognizer(deny_legal)
+            self.analyzer.registry.add_recognizer(deny_comuns)
+            
+            print("✅ Reconhecedores personalizados (Endereço, RG, CPF, etc.) e listas de negação foram adicionados.")
 
         except Exception as e:
             print(f"⚠️ Erro ao adicionar reconhecedores personalizados: {e}")
@@ -104,7 +141,8 @@ class AnonimizadorCore:
         return {
             "DEFAULT": OperatorConfig("replace", {"new_value": "<DADO_SENSIVEL>"}),
             "PERSON": OperatorConfig("replace", {"new_value": "<NOME>"}),
-            "LOCATION": OperatorConfig("replace", {"new_value": "<ENDERECO>"}),
+            "LOCATION": OperatorConfig("replace", {"new_value": "<LOCAL>"}), # Renomeado para clareza
+            "ENDERECO_POSTAL": OperatorConfig("replace", {"new_value": "<ENDERECO>"}), # Novo operador
             "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "<EMAIL>"}),
             "CPF": OperatorConfig("replace", {"new_value": "<CPF>"}),
             "RG_NUMBER": OperatorConfig("replace", {"new_value": "<RG>"}),
@@ -113,6 +151,7 @@ class AnonimizadorCore:
             "CRESS_NUMBER": OperatorConfig("replace", {"new_value": "<CRESS>"}),
             "PHONE_NUMBER": OperatorConfig("mask", {"type": "mask", "masking_char": "*", "chars_to_mask": 4, "from_end": True}),
             "LEGAL_TERM": OperatorConfig("keep"), # Manter termos legais
+            "COMMON_TERM": OperatorConfig("keep"), # Manter termos comuns
             "DATE_TIME": OperatorConfig("keep"),  # Manter datas
         }
     

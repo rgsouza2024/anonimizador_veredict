@@ -1282,11 +1282,10 @@ with tab_texto:
     with col_anonimizado:
         st.markdown("##### Texto Anonimizado (Camada 1)")
         st.text_area("Resultado da anonimização (com tags):", 
-                     value=st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE, "O resultado da anonimização aparecerá aqui..."), 
-                     height=300, disabled=True) # key removida
+                     height=300, disabled=True, key=KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE) # key adicionada, value removido
         if st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE) and \
            st.session_state.get(KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE) not in ["O resultado da anonimização aparecerá aqui...", "O resultado da área de texto aparecerá aqui...", "Erro ao processar o texto da área."]:
-            st_copy_to_clipboard(st.session_state[KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE], "📋 Copiar Texto Anonimizado", key=KEY_COPY_BTN_AREA_ANON) # <--- CORRIGIDO AQUI
+            st_copy_to_clipboard(st.session_state[KEY_TEXTO_ANONIMIZADO_OUTPUT_AREA_STATE], "📋 Copiar Texto Anonimizado", key=KEY_COPY_BTN_AREA_ANON)
         else: 
             st.markdown("<div style='height: 38px;'></div>", unsafe_allow_html=True) # Mantém alinhamento
     

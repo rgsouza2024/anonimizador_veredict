@@ -103,12 +103,7 @@ def limpar_resultados():
     ultimo_resultado = ""
     return "", None, gr.update(visible=False), gr.update(visible=False)
 
-def copiar_para_clipboard():
-    """
-    Retorna o texto para ser copiado (Gradio lidará com a cópia).
-    """
-    global ultimo_resultado
-    return ultimo_resultado
+
 
 # Configuração da interface com tema mais moderno
 with gr.Blocks(
@@ -186,15 +181,17 @@ with gr.Blocks(
         
         # --- COLUNA DA DIREITA ---
         with gr.Column(scale=2):
-            # >>> MUDANÇA AQUI <<<
-            # Criamos uma linha para o título e o botão copiar
-            with gr.Row(elem_id="resultado_cabecalho"):
+            with gr.Row():
                 gr.Markdown("### 📋 **Resultado da Anonimização**")
-                btn_copiar = gr.Button(
-                    "📋 Copiar",
-                    variant="secondary",
-                    size="sm",
-                    visible=False # Começa invisível
+                gr.Button("📋 Copiar").click(
+                    None, [], [],
+                    js="""() => {
+                        const textarea = document.querySelector('#resultado textarea');
+                        if (textarea) {
+                            navigator.clipboard.writeText(textarea.value);
+                            alert('Texto copiado para a área de transferência!');
+                        }
+                    }"""
                 )
 
             resultado_textbox = gr.Textbox(
@@ -217,32 +214,18 @@ with gr.Blocks(
     btn_processar.click(
         fn=anonimizar_documento_interface,
         inputs=[arquivo, modelo_llm, chave_api],
-        # Adicionamos a atualização do botão copiar aqui
-        outputs=[resultado_textbox, arquivo_download, download_section, btn_copiar]
+        outputs=[resultado_textbox, arquivo_download, download_section]
     )
     
     btn_limpar.click(
         fn=limpar_resultados,
         inputs=[],
-        # Adicionamos a atualização do botão copiar aqui
-        outputs=[resultado_textbox, arquivo_download, download_section, btn_copiar]
+        outputs=[resultado_textbox, arquivo_download, download_section]
     )
     
-    btn_copiar.click(
-        fn=copiar_para_clipboard,
-        inputs=[],
-        outputs=[resultado_textbox],
-        # Adiciona um efeito visual de cópia na interface
-        js="""
-        (text_to_copy) => {
-            navigator.clipboard.writeText(text_to_copy);
-            alert("Texto copiado para a área de transferência!");
-            return text_to_copy;
-        }
-        """
-    )
+    
 
 # Lançar a aplicação
 if __name__ == "__main__":
-    print("🚀 Iniciando a interface do AnonimizaJud...")
+    print("Iniciando a interface do AnonimizaJud...")
     interface.launch(server_name="0.0.0.0", server_port=7860, show_error=True)
