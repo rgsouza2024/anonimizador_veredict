@@ -14,7 +14,7 @@ license: mit
 
 Uma aplicação moderna e profissional para anonimização de documentos jurídicos usando inteligência artificial.
 
-## 🚀 Novidades na Versão 0.91 Beta
+## 🚀 Novidades na Versão 0.92 Beta
 
 ### ✨ Interface Modernizada
 - **Design System Profissional**: Cores e tipografia consistentes com a identidade visual
@@ -43,6 +43,7 @@ Uma aplicação moderna e profissional para anonimização de documentos jurídi
 - **Múltiplos Formatos**: Suporte para PDF e texto colado
 - **Exportação DOCX**: Gera documentos Word anonimizados
 - **Tags Estruturadas**: Marcação consistente de dados sensíveis
+- **Nova Detecção**: Reconhecimento de termos "matrícula" e "SIAPE"
 
 ### 🤖 IA Avançada
 - **Múltiplos Modelos**: OpenAI, Claude, Gemini, Groq, Ollama
@@ -61,6 +62,7 @@ Uma aplicação moderna e profissional para anonimização de documentos jurídi
 - **Sem Armazenamento**: Dados não são salvos permanentemente
 - **Anonimização Robusta**: Múltiplas camadas de proteção
 - **Conformidade LGPD**: Adequado para uso jurídico brasileiro
+- **Nova Proteção**: Anonimização de identificadores de matrícula e SIAPE
 
 ## 🚀 Como Usar
 
@@ -130,7 +132,7 @@ anonimizador_veredict/
 **Desenvolvido por:**
 - Juiz Federal Rodrigo Gonçalves de Souza
 
-**Versão:** 0.91 Beta
+**Versão:** 0.92 Beta
 
 ## ⚠️ Importante
 
