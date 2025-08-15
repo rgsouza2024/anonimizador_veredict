@@ -283,7 +283,7 @@ LISTA_ESTADO_CIVIL = [
     "em união estável"
 ]
 LISTA_ORGANIZACOES_CONHECIDAS = [
-    "SIAPE", "FUNASA", "INSS", "IBAMA", "CNPQ", "IBGE", "FIOCRUZ",
+    "FUNASA", "INSS", "IBAMA", "CNPQ", "IBGE", "FIOCRUZ",
     "SERPRO", "DATAPREV", "VALOR", "Justiça", "Justica", "Segredo", "PJe"
     "Assunto", "Tribunal Regional Federal", "Assuntos", "Vara Federal",
     "Vara", "Justiça Federal", "Federal", "Juizado", "Especial", "Federal",
@@ -461,6 +461,18 @@ def carregar_analyzer_engine(termos_safe_location,
         )
         analyzer.registry.add_recognizer(cin_recognizer)
         
+        # Reconhecedor para termos "matrícula" e "siape" (substituir por ***)
+        matricula_siape_patterns = [
+            Pattern(name="matricula_siape", regex=r"(?i)\b(matr[íi]cula|siape)\b", score=0.95)
+        ]
+        matricula_siape_recognizer = PatternRecognizer(
+            supported_entity="MATRICULA_SIAPE",
+            name="MatriculaSiapeRecognizer",
+            patterns=matricula_siape_patterns,
+            supported_language="pt"
+        )
+        analyzer.registry.add_recognizer(matricula_siape_recognizer)
+        
         # --- Reconhecedor para IDs de Documento/Processo/Benefício (REFINADO) ---
         id_documento_patterns = [
             # Para NB XXXXXXXXX-X ou XXX.XXX.XXX-X
@@ -518,13 +530,14 @@ def obter_operadores_anonimizacao():
         "ESTADO_CIVIL": OperatorConfig("keep"),
         "ORGANIZACAO_CONHECIDA": OperatorConfig("keep"),
         "ID_DOCUMENTO": OperatorConfig("keep"), 
-                        "LEGAL_OR_COMMON_TERM": OperatorConfig("keep"),
-                # Operadores para documentos - substituindo por "***"
-                "CNH": OperatorConfig("replace", {"new_value": "***"}),
-                "SIAPE": OperatorConfig("replace", {"new_value": "***"}),
-                "CI": OperatorConfig("replace", {"new_value": "***"}),
-                "CIN": OperatorConfig("replace", {"new_value": "***"}),
-                "RG": OperatorConfig("replace", {"new_value": "***"})
+        "LEGAL_OR_COMMON_TERM": OperatorConfig("keep"),
+        # Operadores para documentos - substituindo por "***"
+        "CNH": OperatorConfig("replace", {"new_value": "***"}),
+        "SIAPE": OperatorConfig("replace", {"new_value": "***"}),
+        "CI": OperatorConfig("replace", {"new_value": "***"}),
+        "CIN": OperatorConfig("replace", {"new_value": "***"}),
+        "RG": OperatorConfig("replace", {"new_value": "***"}),
+        "MATRICULA_SIAPE": OperatorConfig("replace", {"new_value": "***"})
     }
 
 analyzer_engine = carregar_analyzer_engine(
@@ -1197,7 +1210,7 @@ with tab_pdf:
 
                 if texto_para_anonimizar and texto_para_anonimizar.strip():
                     with st.spinner(f"Anonimizando '{st.session_state.get('nome_arquivo_carregado'+VERSION_SUFFIX)}'..."):
-                        entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "ID_DOCUMENTO", "CNH", "SIAPE", "CI", "CIN"]
+                        entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "ID_DOCUMENTO", "CNH", "SIAPE", "CI", "CIN", "MATRICULA_SIAPE"]
                         entidades_para_analise = list(set(entidades_para_analise)); 
                         if "DEFAULT" in entidades_para_analise: entidades_para_analise.remove("DEFAULT")
                         resultados_analise_pdf = analyzer_engine.analyze(text=texto_para_anonimizar, language='pt', entities=entidades_para_analise, return_decision_process=False)
@@ -1276,7 +1289,7 @@ with tab_texto:
         elif analyzer_engine and anonymizer_engine:
             try:
                 with st.spinner("Analisando e anonimizando o texto da área..."):
-                    entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "CNH", "SIAPE", "CI", "CIN"]
+                    entidades_para_analise = list(operadores.keys()) + ["SAFE_LOCATION", "LEGAL_HEADER", "ESTADO_CIVIL", "ORGANIZACAO_CONHECIDA", "CNH", "SIAPE", "CI", "CIN", "MATRICULA_SIAPE"]
                     entidades_para_analise = list(set(entidades_para_analise))
                     if "DEFAULT" in entidades_para_analise: entidades_para_analise.remove("DEFAULT")
                     
