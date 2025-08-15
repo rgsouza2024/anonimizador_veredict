@@ -1,197 +1,149 @@
-# 🚀 AnonimizaJud - Versão Gradio
+# ⚖️ AnonimizaJUD (Versão Gradio)
 
-**Uma ferramenta inteligente para anonimização de documentos jurídicos e textuais com Microsoft Presidio e Gradio.**
+O **AnonimizaJUD** é uma poderosa ferramenta de anonimização de documentos jurídicos, projetada para auxiliar profissionais do direito a proteger informações sensíveis em textos e arquivos PDF.
 
-Este projeto oferece uma solução robusta e de fácil utilização para detectar e anonimizar automaticamente Informações de Identificação Pessoal (PII) em documentos, com um foco especial no contexto linguístico e jurídico do Brasil.
+A aplicação funciona em um processo de duas camadas:
+1.  **Camada 1 (Anonimização com Presidio):** Utiliza o motor do Microsoft Presidio, aprimorado com regras customizadas para o contexto jurídico brasileiro, para detectar e substituir dados pessoais (Nomes, CPFs, Endereços, etc.) por tags genéricas (ex: `<NOME>`, `<CPF>`).
+2.  **Camada 2 (Reescrita com IA Generativa):** Opcionalmente, o texto "taggeado" pode ser processado por um Grande Modelo de Linguagem (LLM) de sua escolha. A IA reescreve o conteúdo, transformando as tags em um texto fluido e natural, como se fosse um resumo jurídico profissional, preservando o contexto original sem expor os dados.
 
-## 🎯 Visão Geral
+Esta versão utiliza a biblioteca **Gradio** para criar uma interface web interativa e fácil de usar.
 
-O **AnonimizaJud** utiliza o poder do **Microsoft Presidio**, uma biblioteca de IA de código aberto, para analisar textos e identificar dezenas de tipos de dados sensíveis. A aplicação é encapsulada numa interface web simples e interativa criada com **Gradio**, permitindo que utilizadores, mesmo sem conhecimentos técnicos, possam carregar os seus documentos (`.pdf`, `.docx`, `.txt`) e receber uma versão segura e anonimizada em segundos.
+## 🚀 Principais Funcionalidades
 
-O sistema foi meticulosamente configurado com regras, padrões e listas de exceções específicas para o português brasileiro, garantindo alta precisão na remoção de dados sensíveis enquanto preserva a integridade e o contexto de documentos legais.
+* **✒️ Anonimização via Texto Direto:** Cole qualquer texto jurídico na interface para anonimização instantânea.
+* **📄 Anonimização via Arquivo PDF:** Faça o upload de documentos `.pdf` para extrair e anonimizar o conteúdo automaticamente.
+* **🧠 Motor de Detecção Robusto:** Baseado no Microsoft Presidio e spaCy, com dezenas de reconhecedores customizados para dados brasileiros (CPF, OAB, CEP, CNH, SIAPE, Processo CNJ, etc.).
+* **🤖 Reescrita com Múltiplos Modelos de IA:** Suporte integrado para os principais modelos de IA do mercado:
+    * Google Gemini
+    * OpenAI GPT
+    * Anthropic Claude
+    * Groq (Llama 3)
+    * Modelos locais via Ollama
+* **📊 Visualização de Entidades:** Veja uma tabela detalhada com todas as informações sensíveis que foram detectadas no seu texto.
+* **✨ Interface Intuitiva:** Um layout limpo com abas que separa claramente as funcionalidades de texto e PDF.
 
-## ✨ Principais Funcionalidades
+## 📸 Visualização da Interface
 
-  - **Suporte a Múltiplos Formatos**: Processa ficheiros `.pdf`, `.docx` e `.txt` de forma transparente para o utilizador.
-  - **Anonimização de Alta Precisão**: Utiliza o motor de NLP (Processamento de Linguagem Natural) da biblioteca `spaCy` (`pt_core_news_lg`) para uma análise contextual profunda do texto em português.
-  - **Reconhecimento do Contexto Brasileiro**: Inclui reconhecedores personalizados (via Regex) para identificar dados específicos do Brasil, como:
-      - CPF (Cadastro de Pessoa Física)
-      - OAB (Inscrição na Ordem dos Advogados do Brasil)
-      - CEP (Código de Endereçamento Postal)
-      - E outros documentos como CNH e SIAPE.
-  - **Preservação Inteligente de Termos**: Utiliza listas de exceções (`deny lists`) para evitar a anonimização incorreta de termos jurídicos, nomes de instituições e palavras comuns, garantindo que o documento permaneça legível e com o seu significado original.
-  - **Interface Web Amigável**: Interface limpa e intuitiva construída com Gradio, que simplifica o processo de upload e visualização.
-  - **Instalação Automatizada**: Scripts de instalação para Windows (`.bat`) e Linux/macOS (`.sh`) que configuram todo o ambiente necessário com um único comando.
+![Screenshot da Aplicação](https://i.imgur.com/gK6pI3g.png)
+*A interface principal, com as abas para anonimização de texto e PDF, e a seção de resumo com IA.*
 
 ## 🛠️ Tecnologias Utilizadas
 
-  - **Backend**: Python 3.8+
-  - **Motor de Anonimização**: Microsoft Presidio (Analyzer & Anonymizer)
-  - **Processamento de Linguagem Natural (NLP)**: spaCy (com o modelo `pt_core_news_lg`)
-  - **Interface Web**: Gradio
-  - **Extração de Texto**: PyPDF2 (para PDFs), python-docx (para DOCX)
+* **Linguagem:** Python 3.9+
+* **Interface Web:** Gradio
+* **Motor de Anonimização:** Microsoft Presidio
+* **Processamento de PDF:** PyMuPDF
+* **NLP (Base):** spaCy (com o modelo `pt_core_news_lg`)
+* **Integração com LLMs:** Google, OpenAI, Anthropic, Groq, Ollama
 
-## ⚙️ Instalação
+## ⚙️ Instalação e Configuração
 
-Siga os passos abaixo para configurar e executar o projeto no seu ambiente local.
+Siga este guia passo a passo para executar a aplicação em seu computador local.
 
-### **Pré-requisitos**
+### 1. Pré-requisitos
 
-  - **Python 3.8 ou superior** instalado. Pode verificar a sua versão com o comando `python --version`.
+Certifique-se de ter o **Python 3.9** ou superior instalado em seu sistema. Você pode verificar com o comando:
+```bash
+python --version
+2. Crie um Ambiente Virtual
+É uma boa prática isolar as dependências do projeto. Crie e ative um ambiente virtual:
 
-### **Opção 1: Instalação Automática (Recomendado)**
+Bash
 
-Os scripts automatizam todo o processo, incluindo a instalação de dependências e o download do modelo de linguagem.
+# Crie a pasta do ambiente virtual (ex: .venv)
+python -m venv .venv
 
-  - **No Windows**:
-    Abra uma linha de comandos (CMD ou PowerShell) e execute:
+# Ative o ambiente:
+# No Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# No macOS/Linux:
+source .venv/bin/activate
+Seu terminal deve agora exibir (.venv) no início da linha.
 
-    ```bash
-    install_presidio_avancado.bat
-    ```
+3. Instale as Dependências
+Crie um arquivo chamado requirements.txt na pasta do seu projeto com o seguinte conteúdo:
 
-  - **No Linux ou macOS**:
-    Abra um terminal, dê permissão de execução ao script e corra-o:
+Plaintext
 
-    ```bash
-    chmod +x install_presidio_avancado.sh
-    ./install_presidio_avancado.sh
-    ```
+gradio
+presidio-analyzer
+presidio-anonymizer
+spacy
+pandas
+PyMuPDF
+python-docx
+python-dotenv
+google-generativeai
+groq
+openai
+anthropic
+requests
+tiktoken
+httpx
+Agora, instale todas as bibliotecas de uma vez com o comando:
 
-### **Opção 2: Instalação Manual**
+Bash
 
-Para utilizadores avançados que preferem controlar o processo.
+pip install -r requirements.txt
+4. Baixe o Modelo de Linguagem spaCy
+O Presidio depende de um modelo de linguagem do spaCy para a análise do texto em português. Baixe-o com o comando:
 
-1.  **Crie e Ative um Ambiente Virtual (Altamente Recomendado)**:
+Bash
 
-    ```bash
-    # Criar o ambiente
-    python -m venv venv
+python -m spacy download pt_core_news_lg
+5. Configure as Chaves de API (Obrigatório para a Camada 2)
+Para usar a funcionalidade de resumo com IA, você precisa das chaves de API dos respectivos serviços.
 
-    # Ativar no Windows
-    .\venv\Scripts\activate
+Crie um arquivo chamado .env na mesma pasta do projeto.
 
-    # Ativar no Linux/macOS
-    source venv/bin/activate
-    ```
+Copie o conteúdo abaixo para o seu arquivo .env e substitua SUA_CHAVE_AQUI pelas suas chaves reais.
 
-2.  **Instale as Dependências Python**:
+Snippet de código
 
-    ```bash
-    pip install -r requirements_gradio.txt
-    ```
+# .env.example - Renomeie este arquivo para .env e adicione suas chaves
 
-3.  **Faça o Download do Modelo de Linguagem spaCy**:
+# Chave para os modelos do Google (Gemini)
+GOOGLE_API_KEY="SUA_CHAVE_AQUI"
 
-    ```bash
-    python -m spacy download pt_core_news_lg
-    ```
+# Chave para os modelos da OpenAI (GPT-4o, etc.)
+OPENAI_API_KEY="SUA_CHAVE_AQUI"
 
-## 🎮 Como Usar a Aplicação
+# Chave para os modelos da Anthropic (Claude)
+ANTHROPIC_API_KEY="SUA_CHAVE_AQUI"
 
-1.  Certifique-se de que todas as dependências estão instaladas e que o seu ambiente virtual (se usou um) está ativo.
-2.  Execute o seguinte comando no seu terminal:
-    ```bash
-    python app_gradio.py
-    ```
-3.  O terminal irá mostrar um endereço local, como `Running on local URL: http://127.0.0.1:7860`. Abra este link no seu navegador.
-4.  Na interface web:
-      - Arraste e solte (ou clique para selecionar) o ficheiro `.pdf`, `.docx` ou `.txt` que deseja anonimizar.
-      - Clique no botão **"🚀 Anonimizar Documento"**.
-      - O texto anonimizado aparecerá na caixa de resultados à direita.
+# Chave para a API da Groq (Llama 3)
+GROQ_API_KEY="SUA_CHAVE_AQUI"
+Observação: Você só precisa preencher as chaves dos serviços que pretende usar. As outras podem ser deixadas em branco.
 
-## 📁 Estrutura do Projeto
+6. Verifique os Arquivos de Apoio
+Certifique-se de que os seguintes arquivos de texto (.txt) estão na mesma pasta que o anonimizador_gradio.py:
 
-```
-gradio_version/
+sobrenomes_comuns.txt
+
+termos_comuns.txt
+
+prompt_instrucao_llm_base.txt
+
+▶️ Como Executar a Aplicação
+Com o ambiente virtual ativado e todas as dependências instaladas, execute o seguinte comando no seu terminal:
+
+Bash
+
+python anonimizador_gradio.py
+O terminal exibirá uma mensagem indicando que a aplicação está rodando, geralmente em um endereço local como http://127.0.0.1:7860. Abra este endereço no seu navegador para começar a usar o AnonimizaJUD!
+
+📂 Estrutura do Projeto
+/seu-projeto/
 │
-├── 📜 anonimizador_core.py      # O "cérebro": toda a lógica de anonimização com Presidio.
-├── 🖥️ app_gradio.py             # A interface web criada com Gradio.
+├── .venv/                   # Pasta do ambiente virtual (criada no passo 2)
 │
-├── 🔧 install_presidio_avancado.bat # Script de instalação para Windows.
-├── 🔧 install_presidio_avancado.sh  # Script de instalação para Linux/macOS.
+├── anonimizador_gradio.py   # O código principal da aplicação Gradio
 │
-├── 🧪 teste_presidio_avancado.py  # Script de teste completo da funcionalidade.
-├── 🧪 teste_simples.py          # Teste básico para verificar o método principal.
-├── 🧪 test_quick.py             # Teste rápido para verificar as dependências.
+├── requirements.txt         # Lista de dependências Python
+├── .env                     # Arquivo com suas chaves de API secretas
 │
-├── 📚 requirements_gradio.txt     # Lista completa de todas as dependências Python.
-├── 📚 requirements_minimal.txt    # Lista mínima de dependências para funcionar.
-│
-├── 📄 sobrenomes_comuns.txt       # Lista de sobrenomes para melhorar a deteção de nomes.
-├── 📄 termos_comuns.txt           # Lista de palavras comuns a serem ignoradas pela anonimização.
-├── 📄 termos_legais.txt           # Lista de jargão jurídico a ser preservado.
-│
-└── 📖 README.md                   # Este ficheiro.
-```
-
-## 🧠 Como Funciona: O Pipeline de Anonimização
-
-O processo ocorre numa sequência lógica bem definida dentro do `anonimizador_core.py`:
-
-1.  **Extração de Texto**: A aplicação primeiro deteta o tipo de ficheiro e usa a biblioteca correspondente (`PyPDF2` ou `python-docx`) para extrair o texto puro do documento.
-2.  **Análise NLP com spaCy**: O texto extraído é passado para o `AnalyzerEngine` do Presidio. Internamente, o motor usa o modelo `pt_core_news_lg` do `spaCy` para realizar uma análise linguística, identificando a estrutura gramatical, verbos, substantivos, etc..
-3.  **Reconhecimento de Entidades (PII)**: O `AnalyzerEngine` aplica várias camadas de reconhecedores para encontrar dados sensíveis:
-      - **Reconhecedores Padrão**: As regras internas do Presidio para entidades universais (NOMES, EMAILS, DATAS, etc.).
-      - **Reconhecedores Personalizados (Regex)**: As regras específicas criadas para o Brasil (CPF, OAB, CEP, etc.) são aplicadas.
-      - **Listas de Negação (`deny_lists`)**: As listas `termos_comuns.txt` e `termos_legais.txt` são usadas para criar reconhecedores que marcam essas palavras como "seguras", impedindo que sejam anonimizadas por engano.
-      - **Listas de Apoio**: A lista `sobrenomes_comuns.txt` ajuda o Presidio a ter maior certeza ao classificar um termo como um nome de pessoa.
-4.  **Operação de Anonimização**: Uma vez que o `AnalyzerEngine` produz uma lista de todas as entidades sensíveis encontradas, essa lista é enviada para o `AnonymizerEngine`.
-5.  **Substituição Contextual**: O `AnonymizerEngine` consulta um dicionário de "operadores" (`obter_operadores_anonimizacao`) que define como cada tipo de entidade deve ser substituído. Por exemplo:
-      - `PERSON` → substitui por `<NOME>`
-      - `CPF` → substitui por `***`
-      - `PHONE_NUMBER` → mascara os últimos 4 dígitos: `(11) 9****-****`
-      - `LEGAL_TERM` → mantém o termo original (`keep`).
-6.  **Resultado Final**: O texto com as substituições realizadas é então retornado e exibido na interface do Gradio.
-
-## 🔬 Testes
-
-Para garantir a qualidade e o correto funcionamento do código, pode executar os testes automatizados.
-
-  - **Teste Completo**: Valida o pipeline de ponta a ponta com um texto de exemplo complexo.
-    ```bash
-    python teste_presidio_avancado.py
-    ```
-  - **Verificação de Dependências**: Verifica se todas as bibliotecas foram instaladas corretamente.
-    ```bash
-    python test_quick.py
-    ```
-
-## 🎨 Personalização e Extensibilidade
-
-Pode facilmente estender as capacidades do anonimizador editando o ficheiro `anonimizador_core.py`.
-
-### Adicionar uma Nova Regra de Reconhecimento
-
-Por exemplo, para reconhecer um "Número de Protocolo" no formato `PROT-123456`:
-
-1.  **Adicione um `PatternRecognizer` em `_adicionar_reconhecedores_pt_br`**:
-
-    ```python
-    protocolo_pattern = Pattern(name="ProtocoloRegexPattern", regex=r"\bPROT-\d{6}\b", score=0.95)
-    self.analyzer.registry.add_recognizer(PatternRecognizer(supported_entity="PROTOCOLO", patterns=[protocolo_pattern]))
-    ```
-
-2.  **Defina o operador de anonimização em `obter_operadores_anonimizacao`**:
-
-    ```python
-    "PROTOCOLO": OperatorConfig("replace", {"new_value": "<PROTOCOLO>"}),
-    ```
-
-## 🚨 Solução de Problemas Comuns
-
-  - **Erro: "ModuleNotFoundError: No module named 'presidio\_analyzer'"**
-
-      - **Causa**: As dependências não foram instaladas ou o ambiente virtual não está ativo.
-      - **Solução**: Execute o script de instalação apropriado ou `pip install -r requirements_gradio.txt` com o ambiente virtual ativado.
-
-  - **Erro: "OSError: [E050] Can't find model 'pt\_core\_news\_lg'"**
-
-      - **Causa**: O modelo de linguagem do spaCy não foi baixado.
-      - **Solução**: Execute `python -m spacy download pt_core_news_lg` no seu terminal.
-
-  - **Erro: "OSError: [WinError 10048]... address already in use"**
-
-      - **Causa**: A porta 7860, usada pelo Gradio, já está a ser usada por outro programa.
-      - **Solução**: O script `app_gradio.py` já tenta automaticamente usar a porta 7861 ou uma porta livre. Se o erro persistir, feche o programa que está a usar a porta ou reinicie o computador.
-
+├── sobrenomes_comuns.txt    # Lista de sobrenomes para o motor de detecção
+├── termos_comuns.txt        # Lista de termos a serem ignorados
+└── prompt_instrucao_llm_base.txt # Prompt padrão para os modelos de IA
+👤 Autor
+Juiz Federal Rodrigo Gonçalves de Souza

@@ -1,0 +1,10 @@
+Você receberá um texto que foi previamente anonimizado. 
+Limite-se ao conteúdo do texto recebido. 
+Substituindo as informações das tags (ex: <NOME> e <ENDERECO>) por textos fluidos e expressões genéricas, sem utilização da tags ou de markdown, faça um resumo detalhado do texto fornecido. 
+Destaque minuciosamente os fatos, os argumentos jurídicos e os pedidos. 
+Omita informações pessoais ou sensíveis por expressões genéricas. NUNCA use tags de anonimização. Não utilize markdowns nem formatação de texto. 
+Traga no output apenas o texto reescrito. Nunca apresente frases introdutórias do tipo 'Aqui está a versão reescrita do texto...' ou frases de encerramento do tipo 'A reescrita mantém a estrutura formal do documento...'.
+think=False
+think=false
+/setnothink
+/no_think
